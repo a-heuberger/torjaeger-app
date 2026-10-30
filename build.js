@@ -93,7 +93,8 @@ function buildPwa(out, test) {
     if (fs.existsSync(p)) fs.copyFileSync(p, path.join(out, f)); else console.warn('Fehlt in assets/:', f);
   }
   const version = sha(html + fs.readFileSync(path.join(out, 'firebase.js'), 'utf8')).slice(0, 12);
-  fs.writeFileSync(path.join(out, 'sw.js'), fs.readFileSync(path.join(root, 'assets/sw.template.js'), 'utf8').replace('__VERSION__', version));
+  const fonts = fs.readdirSync(path.join(out, 'fonts')).sort().map(n => 'fonts/' + n);
+  fs.writeFileSync(path.join(out, 'sw.js'), fs.readFileSync(path.join(root, 'assets/sw.template.js'), 'utf8').replace('__VERSION__', version).replace('__FONTS__', JSON.stringify(fonts)));
   fs.writeFileSync(path.join(out, '.nojekyll'), '');
   const size = d => fs.readdirSync(d, { withFileTypes: true }).reduce((n, e) => n + (e.isDirectory() ? size(path.join(d, e.name)) : fs.statSync(path.join(d, e.name)).size), 0);
   console.log((test ? 'Web-App (Test): ' : 'Web-App: ') + path.relative(root, out) + ' | Version ' + version + ' | ' + (size(out) / 1024).toFixed(0) + ' KB gesamt');

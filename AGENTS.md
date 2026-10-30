@@ -25,10 +25,17 @@ node test/e2e.js; node test/e2e4.js; node test/e2e6.js
 node tools/rules.js <Code> build/test.firestore.rules   # Regeln aus der Vorlage
 ./node_modules/.bin/firebase emulators:start --only firestore --project demo-torjaeger --config firebase.json   # Emulator auf 127.0.0.1:8085 (lädt das Jar beim ersten Start)
 node test/e2e-cloud.js           # Web-App gegen den Emulator: echtes SDK, echte Regeln, zwei Geräte, offline, falscher Code
+node test/subpath.js             # docs/ unter dem Pages-Unterpfad /torjaeger-app/: Manifest, Symbole, Service Worker, Schriften, Start ohne Netz
 node tools/icons.js              # Symbole neu zeichnen (assets/)
 ```
 
 Vor jedem Push auf `main` müssen **alle** Suiten grün sein: Push = live für die Familie (Pages baut in etwa einer Minute). Nach Änderungen an `src/` immer `node build.js` laufen lassen und `docs/` mit committen. Die Datei `docs/index.html` nach dem Build **nie** von Hand ändern (die Sicherheitsrichtlinie enthält den Hash des Skripts).
+
+## Veröffentlichung und Repo
+
+- Repo: `github.com/a-heuberger/torjaeger-app`, **öffentlich**, Branch `main`. Die Web-App liegt als `docs/` darin; GitHub Pages liefert sie aus (Settings → Pages → Branch `main`, Ordner `/docs`) unter `https://a-heuberger.github.io/torjaeger-app/`, also in einem **Unterpfad**: im Code und in `docs/` nur relative Pfade (Manifest, Symbole, `sw.js`), nie ein führendes `/`. `test/subpath.js` fängt das ab.
+- Pushen aus einer Claude-Sitzung: Repo mit `add_repo` (Zugriff `push`) anhängen, dann normal `git push`. Das läuft über die Claude-GitHub-App. Meldet GitHub **403 „repo_not_connected“**, hat die App auf dem Konto `a-heuberger` keinen Zugriff auf das Repo: Der Nutzer gibt ihn unter github.com/settings/installations → Claude → Configure frei (nur der Kontoinhaber kann das). Das Anlegen eines Repos über die Werkzeuge geht nicht (403), das macht der Nutzer.
+- Das Claude-Fenster im Chrome des Nutzers gehört nicht zur Cloud-Sitzung: Klicks im Browser des Nutzers kann die Sitzung nicht ausführen.
 
 ## Zugang und Datenschutz
 
@@ -50,6 +57,7 @@ Vor jedem Push auf `main` müssen **alle** Suiten grün sein: Push = live für d
 
 - iOS: Safari und Home-Bildschirm-App haben **getrennten** Speicher. Der Link bleibt deshalb mit `#c=…` in der Adresse (wird beim „Zum Home-Bildschirm“ übernommen); sonst fragt die App einmal nach dem Link. `hashchange` nimmt einen neuen Link sofort an.
 - Offline-Start: Ein `cfg/main`, das nur aus dem Zwischenspeicher kommt und nicht existiert, ist **kein** neues Spiel, sondern Sperrseite „offline“, bis der Server antwortet. Geschrieben wird ohne Abwarten (Firestore-Warteschlange).
+- Service Worker (`assets/sw.template.js`): Beim allerersten Laden ist er noch nicht aktiv, was die Seite dabei lädt, würde nie gemerkt. Deshalb stehen die Schriften (`__FONTS__`, aus `build.js`) in der Hülle, und `index.html` gibt es als Rückfall nur für Navigationen (sonst bekäme eine Schriftanfrage ohne Netz HTML zurück und das Laden scheitert mit „OTS parsing error“).
 - Sicherheitsrichtlinie per Meta-Tag: `img-src` muss `https://www.google.com` erlauben (das SDK pingt `cleardot.gif`); Test-Build erlaubt zusätzlich `127.0.0.1`.
 - esbuild-Ziel `safari15`; `safari14` scheitert an der Destrukturierung im SDK.
 - Firestore-Regel `{document=**}` trifft auch den Familienknoten selbst; das ist gewollt und unkritisch.
