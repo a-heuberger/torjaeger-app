@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="de" class="pwa">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -77,6 +77,8 @@ ul { list-style: none; }
     linear-gradient(180deg, #0c2c1a 0%, #071b10 52%, #050e09 100%);
 }
 #app, #layer, #celeb, #toast { position: relative; z-index: 1; }
+/* Web-App: Der Kopf klebt unterhalb der Statusleiste (top: env(…)). Sein Platz im Fluss muss schon dort liegen, sonst schiebt das Kleben ihn beim Start über die ersten Pixel des Inhalts. (Die Claude-Seite bringt diesen Abstand über ihr Grundgerüst mit.) */
+.pwa #app { padding-top: env(safe-area-inset-top, 0px); }
 .wrap { width: 100%; max-width: 580px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .main { padding-top: 6px; padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 14px; align-content: start; }
 .disp { font-family: var(--f-display); font-style: italic; font-weight: 900; text-transform: uppercase; letter-spacing: .01em; }
@@ -566,7 +568,7 @@ body.noscroll .toast { animation-name: toast-top; }
 .hflag { display: inline-grid; place-items: center; flex: none; }
 .hflag .card-ic { height: 24px; width: auto; filter: drop-shadow(0 0 6px currentColor); }
 .weekcards .wc { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-.coach-sec { scroll-margin-top: 78px; }
+.coach-sec { scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 78px); }
 .chips-r.jump, .chips-r.ideas { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* ---------- Konto ---------- */
@@ -743,7 +745,7 @@ p.mode-note { padding: 0 4px; margin: -4px 0 -2px; color: var(--ink-3); }
 .a2hs-tx p { margin: 4px 0 0; font-size: 14.5px; color: var(--ink-2); line-height: 1.35; }
 .a2hs .btn { grid-column: 1 / -1; justify-self: end; }
 .linkbox { width: 100%; font: 600 14px/1.3 ui-monospace, Menlo, monospace; word-break: break-all; }
-.gate-main { padding-top: calc(env(safe-area-inset-top, 0px) + 20px); }
+.gate-main { padding-top: 20px; }
 
 </style>
 <script src="firebase.js"></script>

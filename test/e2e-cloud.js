@@ -7,6 +7,7 @@ const http = require('http'), fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..', 'build/pwa-test');
 const EMU = 'http://127.0.0.1:8085', PROJECT = 'demo-torjaeger', CODE = 'TESTCODE23456789', WRONG = 'WRONGCODE2345678', PORT = 5199;
 const BASEURL = 'http://127.0.0.1:' + PORT + '/';
+const INSET_TOP = 59, INSET_BOTTOM = 34;      // iPhone mit Dynamic Island: Statusleiste und Home-Balken (Abschnitt K)
 const DOCS = EMU + '/v1/projects/' + PROJECT + '/databases/(default)/documents';
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
 
@@ -21,6 +22,10 @@ const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0].split('#')[0]); if (p.endsWith('/')) p += 'index.html';
   const f = path.join(ROOT, p);
   if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); res.end('nicht da'); return; }
+  if (/[?&]inset=1\b/.test(req.url) && path.basename(f) === 'index.html') {         // iPhone-Abstände nachstellen, nur im <style> (im Skript bräche der Hash der Sicherheitsrichtlinie)
+    const body = fs.readFileSync(f, 'utf8').replace(/<style[^>]*>[\s\S]*?<\/style>/g, s => s.replace(/env\(safe-area-inset-top,\s*0px\)/g, INSET_TOP + 'px').replace(/env\(safe-area-inset-bottom,\s*0px\)/g, INSET_BOTTOM + 'px'));
+    res.writeHead(200, { 'Content-Type': TYPES['.html'], 'Cache-Control': 'no-store' }); res.end(body); return;
+  }
   res.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
   fs.createReadStream(f).pipe(res);
 });
@@ -220,6 +225,44 @@ async function enter(page, name) {          // Einlauf durchspielen
   const dev7 = await open(b, BASEURL, { ctx: ctx7 }); const h7 = H(dev7);
   await dev7.evaluate(u => { location.hash = u.split('#')[1]; }, toolLink); await h7.wait(3500);
   ok('J Link in die Adresszeile der laufenden App: sie verbindet sich ohne Neuladen von Hand', (await h7.digits()) === '3:2', await h7.digits());
+
+  // ---- K) iPhone mit Dynamic Island: Statusleiste (59 px oben) und Home-Balken (34 px unten) nachgestellt ----
+  // Am Rechner sind die Sicherheitsabstände 0, deshalb fiel das nie auf: Der Kopf klebt (sticky) unterhalb der Statusleiste. Liegt sein Platz im Fluss weiter
+  // oben, wandert er beim Start über die ersten 59 px des Inhalts und verdeckt sie (echter Befund auf dem iPhone: Die Tagesleiste war halb abgedeckt).
+  // Der Testserver ersetzt die Abstände nur im <style> (im Skript würde der Hash der Sicherheitsrichtlinie brechen), wenn die Adresse ?inset=1 trägt.
+  const ctx8 = await b.newContext({ viewport: { width: 393, height: 852 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, reducedMotion: 'reduce', serviceWorkers: 'block' });
+  const dev8 = await open(b, link(CODE).replace(BASEURL + '#', BASEURL + '?inset=1#'), { ctx: ctx8, settle: 2500 }); const h8 = H(dev8);
+  const geo = () => dev8.evaluate(() => {
+    const main = document.querySelector('main'), head = document.querySelector('.top').getBoundingClientRect(), tabs = document.querySelector('.tabs').getBoundingClientRect();
+    const first = main.firstElementChild.getBoundingClientRect(), last = main.lastElementChild.getBoundingClientRect();
+    return { headTop: head.top, headBottom: head.bottom, tabsTop: tabs.top, tabsBottom: tabs.bottom, firstTop: first.top, firstCls: main.firstElementChild.className, lastBottom: last.bottom, scrollY: window.scrollY, vh: innerHeight };
+  });
+  const near = (a, c, d = 0.6) => Math.abs(a - c) <= d;
+  let g = await geo();
+  ok('K Kopf sitzt direkt unter der Statusleiste (' + INSET_TOP + ' px)', near(g.headTop, INSET_TOP), 'oben ' + g.headTop.toFixed(1));
+  ok('K Heute: die Tagesleiste beginnt unterhalb des Kopfes, nichts ist verdeckt', g.firstTop >= g.headBottom - 0.6, 'Leiste ab ' + g.firstTop.toFixed(1) + ', Kopf endet ' + g.headBottom.toFixed(1));
+  await dev8.click('[data-act="lock"]'); await h8.wait(300);
+  for (const [id, name] of [['today', 'Heute'], ['week', 'Woche'], ['achieve', 'Erfolge'], ['konto', 'Konto'], ['coach', 'Trainer']]) {
+    await dev8.click('.tab[data-tab="' + id + '"]'); await h8.wait(400);
+    g = await geo();
+    ok('K ' + name + ': Inhalt beginnt unterhalb des Kopfes', g.scrollY === 0 && g.firstTop >= g.headBottom - 0.6, 'erstes Element ab ' + g.firstTop.toFixed(1) + ' (' + g.firstCls.split(' ')[0] + '), Kopf endet ' + g.headBottom.toFixed(1));
+  }
+  await dev8.evaluate(() => window.scrollTo(0, 500)); await h8.wait(250);
+  g = await geo();
+  ok('K nach dem Scrollen klebt der Kopf weiter unter der Statusleiste', g.scrollY > 100 && near(g.headTop, INSET_TOP), 'scrollY ' + g.scrollY + ', oben ' + g.headTop.toFixed(1));
+  ok('K Statusleisten-Deckel ist ' + INSET_TOP + ' px hoch (Inhalt scheint nicht durch)', await dev8.evaluate(() => getComputedStyle(document.body, '::before').height) === INSET_TOP + 'px');
+  // Schnellsprung im Trainer-Reiter: Die Überschrift des Bereichs landet unter dem Kopf, nicht dahinter
+  for (const sec of ['aufgaben', 'ziele', 'karten', 'konto', 'spieler']) {
+    await dev8.evaluate(() => window.scrollTo(0, 0)); await h8.wait(150);
+    await dev8.click('.jump [data-act="goto-sec"][data-sec="' + sec + '"]'); await h8.wait(450);
+    const t = await dev8.evaluate(id => { const e = document.getElementById(id), hb = document.querySelector('.top').getBoundingClientRect().bottom; return { top: e.getBoundingClientRect().top, hb, atEnd: window.scrollY + innerHeight >= document.documentElement.scrollHeight - 2 }; }, 'sec-' + sec);
+    ok('K Sprung zu „' + sec + '“: Überschrift liegt unter dem Kopf, nicht dahinter', t.top >= t.hb - 0.6 && (t.top <= t.hb + 40 || t.atEnd), 'Bereich ab ' + t.top.toFixed(1) + ', Kopf endet ' + t.hb.toFixed(1));
+  }
+  await dev8.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); await h8.wait(250);
+  g = await geo();
+  ok('K Listenende liegt oberhalb der Tab-Leiste (mit Home-Balken)', g.lastBottom <= g.tabsTop + 0.6, 'Ende ' + g.lastBottom.toFixed(1) + ', Tab-Leiste ab ' + g.tabsTop.toFixed(1));
+  ok('K Tab-Leiste reicht bis zum unteren Rand', near(g.tabsBottom, g.vh), 'unten ' + g.tabsBottom.toFixed(1) + ' von ' + g.vh);
+  await ctx8.close();
 
   console.log(errs.length ? 'FEHLER im Browser:\n' + errs.join('\n') : 'ok   keine unerwarteten Konsolenfehler (auch keine Verstöße gegen die Sicherheitsrichtlinie)');
   console.log(bad ? '\n' + bad + ' Prüfung(en) fehlgeschlagen' : '\nalle Prüfungen ok');

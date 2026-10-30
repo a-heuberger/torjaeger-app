@@ -1,7 +1,7 @@
 /* Offline-Hülle der Web-App: Netz zuerst (neue Fassungen kommen sofort an), ohne Netz die zuletzt gemerkte Fassung.
    Die Daten selbst liegen nicht hier, sondern im Zwischenspeicher von Firestore.
    Die Schriften stehen schon in der Hülle: Beim allerersten Laden ist der Service Worker noch nicht aktiv, was die Seite dabei lädt, würde sonst nie gemerkt. */
-const CACHE = 'torjaeger-46668476f4f1';
+const CACHE = 'torjaeger-827718f5e4cc';
 const SHELL = ['./', 'index.html', 'firebase.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png'];
 const FONTS = ["fonts/barlow-condensed-latin-600-normal.woff2","fonts/barlow-condensed-latin-700-italic.woff2","fonts/barlow-condensed-latin-700-normal.woff2","fonts/barlow-condensed-latin-800-italic.woff2","fonts/barlow-condensed-latin-800-normal.woff2","fonts/barlow-condensed-latin-900-italic.woff2","fonts/barlow-latin-500-normal.woff2","fonts/barlow-latin-600-normal.woff2","fonts/barlow-latin-700-normal.woff2"];
 self.addEventListener('install', e => {

@@ -66,7 +66,7 @@ function buildPwa(out, test) {
     "manifest-src 'self'", "worker-src 'self'", "base-uri 'none'", "form-action 'none'",
   ].join('; ');
   const html = [
-    '<!doctype html>', '<html lang="de">', '<head>', '<meta charset="utf-8">',
+    '<!doctype html>', '<html lang="de" class="pwa">', '<head>', '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
     '<meta http-equiv="Content-Security-Policy" content="' + csp + '">',
     '<title>Torjäger</title>',

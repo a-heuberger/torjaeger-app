@@ -24,7 +24,7 @@ node test/e2e7.js                # Browser-Tests der Claude-Seite (Playwright; g
 node test/e2e.js; node test/e2e4.js; node test/e2e6.js
 node tools/rules.js <Code> build/test.firestore.rules   # Regeln aus der Vorlage
 ./node_modules/.bin/firebase emulators:start --only firestore --project demo-torjaeger --config firebase.json   # Emulator auf 127.0.0.1:8085 (lädt das Jar beim ersten Start)
-node test/e2e-cloud.js           # Web-App gegen den Emulator: echtes SDK, echte Regeln, zwei Geräte, offline, falscher Code
+node test/e2e-cloud.js           # Web-App gegen den Emulator: echtes SDK, echte Regeln, zwei Geräte, offline, falscher Code, iPhone-Statusleiste (Abschnitt K)
 node test/subpath.js             # docs/ unter dem Pages-Unterpfad /torjaeger-app/: Manifest, Symbole, Service Worker, Schriften, Start ohne Netz
 node tools/icons.js              # Symbole neu zeichnen (assets/)
 ```
@@ -63,6 +63,7 @@ Vor jedem Push auf `main` müssen **alle** Suiten grün sein: Push = live für d
 - Firestore-Regel `{document=**}` trifft auch den Familienknoten selbst; das ist gewollt und unkritisch.
 - Das echte Projekt lässt sich von außen prüfen, ohne Daten zu berühren (Firestore-REST, ohne Anmeldung): Richtiger Code → `GET …/documents/families/<Code>/cfg/main` gibt 404 (erlaubt, nur leer), `…/days` gibt 200 `{}`. Falscher Code, `…/families` und jeder andere Pfad geben 403. **Der API-Schlüssel schützt nichts:** dieselben Aufrufe ohne `key=` antworten genauso, allein die Regeln mit dem Familiencode im Pfad entscheiden. Ein Probe-Dokument (`_selftest/probe`) sofort wieder löschen.
 - Rauchtest mit dem echten Link nur **lesend** fahren (Einlauf erscheint, kein Schreibkanal); die Einrichtung abzuschließen schreibt `cfg/main` in die echte Datenbank.
+- **Sicherheitsabstände (iPhone mit Dynamic Island) sind am Rechner 0 und fallen dort nie auf.** Der Kopf (`.top`) klebt mit `top: env(safe-area-inset-top)` unterhalb der Statusleiste; liegt sein Platz im Fluss weiter oben, schiebt ihn das Kleben beim Start über die ersten 59 px des Inhalts (echter Befund auf dem iPhone: Tagesleiste halb verdeckt). Deshalb `.pwa #app { padding-top: env(safe-area-inset-top) }`; die Claude-Seite bringt den Abstand über ihr Grundgerüst mit, die Klasse `pwa` setzt `build.js` am `<html>`. Jede feste Höhe unterhalb des Kopfes braucht `env(safe-area-inset-top)` mit (`scroll-margin-top`, `.shotbar`, `#banner`). Abschnitt K in `test/e2e-cloud.js` stellt Statusleiste (59 px) und Home-Balken (34 px) nach: Der Testserver ersetzt die Abstände bei `?inset=1` nur im `<style>` (im Skript bräche der Hash der Sicherheitsrichtlinie). Nicht per Playwright-`route` lösen, das stört die Anfragen an den Emulator (CORS).
 - Trainer-Modus „Schieß“ (`shootMode`): Der Spielstand hält Tore zurück, bis der Ball geschossen oder übersprungen wurde (Tests: `skipShots`).
 - Browser-Tests der Claude-Seite brauchen `test/mock-claude.js` (bildet die db von Claude nach, `window.__nodb`/`__readonly` schalten Zugriffsarten).
 - Eine doppelte Setting-`id` oder ein ungültiger Block lässt andere Plattformen Dateien still liegen: lieber testen als annehmen.
