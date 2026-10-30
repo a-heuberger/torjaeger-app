@@ -7,7 +7,7 @@ Die App selbst liegt bei GitHub und wird von dort ausgeliefert. Dazu kommt eine 
 1. https://console.firebase.google.com öffnen und mit dem Google-Konto anmelden, dem die Datenbank gehören soll (am besten ein privates).
 2. **Projekt erstellen** (Create a project): Name z. B. `torjaeger-familie` → Weiter → Google Analytics **ausschalten** → Projekt erstellen → Weiter.
 3. Links im Menü **Erstellen** (Build) → **Firestore Database** → **Datenbank erstellen** (Create database):
-   Edition **Standard**, Standort **eur3 (Europa)** (alternativ europe-west3 Frankfurt), **Im Produktionsmodus starten**, Erstellen.
+   Standort **eur3 (Europa)** (alternativ europe-west3 Frankfurt), **Im Produktionsmodus starten**, Erstellen. Wird eine Edition abgefragt: **Standard**.
 4. Oben auf den Reiter **Regeln** (Rules): den gesamten Text löschen, den Regeltext von Claude einfügen, **Veröffentlichen** (Publish).
 5. Zahnrad neben „Projektübersicht“ → **Projekteinstellungen** → unten bei „Meine Apps“ auf das Web-Symbol **</>** → Spitzname `Torjäger` → **App registrieren**
    (Firebase Hosting **nicht** ankreuzen). Den Block `const firebaseConfig = { … };` kopieren und Claude schicken.
