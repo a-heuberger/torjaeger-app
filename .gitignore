@@ -1,0 +1,9 @@
+node_modules/
+build/
+*.log
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.DS_Store
+shots/
