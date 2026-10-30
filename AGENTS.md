@@ -35,7 +35,7 @@ Vor jedem Push auf `main` müssen **alle** Suiten grün sein: Push = live für d
 
 - Repo: `github.com/a-heuberger/torjaeger-app`, **öffentlich**, Branch `main`. Die Web-App liegt als `docs/` darin; GitHub Pages liefert sie aus (Settings → Pages → Branch `main`, Ordner `/docs`) unter `https://a-heuberger.github.io/torjaeger-app/`, also in einem **Unterpfad**: im Code und in `docs/` nur relative Pfade (Manifest, Symbole, `sw.js`), nie ein führendes `/`. `test/subpath.js` fängt das ab.
 - Pushen aus einer Claude-Sitzung: Repo mit `add_repo` (Zugriff `push`) anhängen, dann normal `git push`. Das läuft über die Claude-GitHub-App. Meldet GitHub **403 „repo_not_connected“**, hat die App auf dem Konto `a-heuberger` keinen Zugriff auf das Repo: Der Nutzer gibt ihn unter github.com/settings/installations → Claude → Configure frei (nur der Kontoinhaber kann das). Das Anlegen eines Repos über die Werkzeuge geht nicht (403), das macht der Nutzer.
-- Das Claude-Fenster im Chrome des Nutzers gehört nicht zur Cloud-Sitzung: Klicks im Browser des Nutzers kann die Sitzung nicht ausführen.
+- Die Cloud-Sitzung hat keinen Browser und erreicht den Computer des Nutzers nicht (auch nicht mit „du bist eingeloggt“). Konsolen- und Einstellungsschritte (GitHub, Firebase) erledigt der Nutzer selbst oder das Claude-Fenster in seinem Chrome: ein vollständiger Auftrag zum Einfügen, das Ergebnis kommt als Text zurück. Für Pages und Firebase hat das so funktioniert.
 
 ## Zugang und Datenschutz
 
@@ -43,7 +43,7 @@ Vor jedem Push auf `main` müssen **alle** Suiten grün sein: Push = live für d
 - Zugang = **Familienlink** `https://<Seite>/#c=<base64url({ k, f, e? })>`. `k` = Familiencode (16 Zeichen A–Z/2–9), `f` = Firebase-Webkonfiguration, `e` = Emulator (nur Tests). Der Link wird einmal pro Gerät geöffnet und liegt dann im lokalen Speicher (`torj-cloud-v1`). Bauen: `node tools/familienlink.js <Seite> <Code> <Konfigurationsdatei>`; neuen Code: `node tools/familiencode.js`.
 - Der Code steht in den Firestore-Regeln (`firestore.rules.template`, Platzhalter `FAMILIENCODE`; der Nutzer fügt sie in der Firebase-Konsole ein) und im Link, sonst nirgends. Ohne Code ist nichts erreichbar (auch `/families` lässt sich nicht auflisten). Das Modell ist „geheimer Link“, nicht „Online-Banking“.
 - Der Trainer-Code (PIN) schützt nur vor versehentlichem Tippen und liegt als Hash in `cfg/main`.
-- Das Firebase-Projekt gehört dem Nutzer (Google-Konto), kostenloser Spark-Tarif, Datenbank in der EU. Claude hat darauf keinen Zugriff; Regeln und Konsole macht der Nutzer nach `ANLEITUNG.md`.
+- Das Firebase-Projekt gehört dem Nutzer (Google-Konto), kostenloser Spark-Tarif, Datenbank in der EU. Claude hat darauf keinen Zugriff; Regeln und Konsole macht der Nutzer nach `ANLEITUNG.md` (oder das Claude-Fenster in seinem Chrome nach einem Auftrag zum Einfügen). Eingerichtet und von außen geprüft: Datenbank `eur3`, Produktionsmodus, Regeln aus der Vorlage mit dem Familiencode, Web-App registriert. Konfiguration, Familiencode und Familienlink liegen **nicht** im Repo; einen neuen Link baut man mit `tools/familienlink.js` aus der Konfiguration, die der Nutzer aus der Firebase-Konsole kopiert.
 
 ## Spielregeln (Stand, so umgesetzt und getestet)
 
@@ -61,6 +61,8 @@ Vor jedem Push auf `main` müssen **alle** Suiten grün sein: Push = live für d
 - Sicherheitsrichtlinie per Meta-Tag: `img-src` muss `https://www.google.com` erlauben (das SDK pingt `cleardot.gif`); Test-Build erlaubt zusätzlich `127.0.0.1`.
 - esbuild-Ziel `safari15`; `safari14` scheitert an der Destrukturierung im SDK.
 - Firestore-Regel `{document=**}` trifft auch den Familienknoten selbst; das ist gewollt und unkritisch.
+- Das echte Projekt lässt sich von außen prüfen, ohne Daten zu berühren (Firestore-REST, ohne Anmeldung): Richtiger Code → `GET …/documents/families/<Code>/cfg/main` gibt 404 (erlaubt, nur leer), `…/days` gibt 200 `{}`. Falscher Code, `…/families` und jeder andere Pfad geben 403. **Der API-Schlüssel schützt nichts:** dieselben Aufrufe ohne `key=` antworten genauso, allein die Regeln mit dem Familiencode im Pfad entscheiden. Ein Probe-Dokument (`_selftest/probe`) sofort wieder löschen.
+- Rauchtest mit dem echten Link nur **lesend** fahren (Einlauf erscheint, kein Schreibkanal); die Einrichtung abzuschließen schreibt `cfg/main` in die echte Datenbank.
 - Trainer-Modus „Schieß“ (`shootMode`): Der Spielstand hält Tore zurück, bis der Ball geschossen oder übersprungen wurde (Tests: `skipShots`).
 - Browser-Tests der Claude-Seite brauchen `test/mock-claude.js` (bildet die db von Claude nach, `window.__nodb`/`__readonly` schalten Zugriffsarten).
 - Eine doppelte Setting-`id` oder ein ungültiger Block lässt andere Plattformen Dateien still liegen: lieber testen als annehmen.
