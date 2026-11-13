@@ -53,6 +53,10 @@ Vor jedem Push auf `main` müssen **alle** Suiten grün sein: Push = live für d
 - Ziele: 25, 50, 75, 100, 125, 150, 175, 200, 250, 300, 500 Tore mit Belohnungstexten des Trainers (alles änderbar). „5 € aufs Guthabenkonto“ bucht beim Einlösen aufs Konto. „Fußballpack“ ist reiner Belohnungstext und hat nichts mit den App-Stickern zu tun.
 - Sticker: 100 (60 normal, 30 selten, 10 ultraselten), 1/2/5 Punkte, 10 Punkte = 1 Bonus-Tor, Tüte alle 6 Tore (einstellbar).
 
+## Schwester-App „Diamanten-Reich“ (in Arbeit)
+
+Für die Tochter der Familie entsteht eine zweite App: Diamanten statt Tore, eine Schatzgräberin statt Torschuss, Einhörner und Prinzessinnen. Sie ist eine **Kopie dieses Gerüsts** mit eigenen Kennungen, im **selben Firebase-Projekt** mit eigenem Familiencode (die Regeln in der Firebase-Konsole werden später um dessen Block erweitert; Bens Code muss danach weiter funktionieren) und bekommt ein eigenes Repo `diamanten-reich` mit eigener Pages-Adresse. Stand, Entscheidungen des Nutzers und Plan: Branch **`schwester-app`** in diesem Repo, dort `UEBERGABE.md` und `AGENTS.md` (nicht ausgeliefert, Pages liest nur `main`). Diese App ändert sich dafür nicht, außer was unter „Gemeinsame Herkunft“ steht.
+
 ## Gotchas
 
 - iOS: Safari und Home-Bildschirm-App haben **getrennten** Speicher. Der Link bleibt deshalb mit `#c=…` in der Adresse (wird beim „Zum Home-Bildschirm“ übernommen); sonst fragt die App einmal nach dem Link. `hashchange` nimmt einen neuen Link sofort an.
