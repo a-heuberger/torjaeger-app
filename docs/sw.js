@@ -9,7 +9,8 @@ self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL).then(() => Promise.all(FONTS.map(f => c.add(f).catch(() => { /* kommt beim nächsten Laden */ }))))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  /* Der Zwischenspeicher gehört der ganzen Herkunft (a-heuberger.github.io), nicht nur dieser App: Die Schwester-App legt eigene an. Nur die eigenen alten Fassungen löschen. */
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('torjaeger-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
   const r = e.request, u = new URL(r.url);

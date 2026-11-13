@@ -14,6 +14,7 @@ let bad = 0;
 const ok = (name, cond, info) => { if (!cond) bad++; console.log((cond ? 'ok   ' : 'FAIL ') + name + (info !== undefined ? ' | ' + info : '')); };
 
 const hits = [], sockets = new Set();
+let swVersion = 1;       // 2 = der Server liefert einen leicht geänderten sw.js, damit der Browser ein Update des Service Workers macht
 const server = http.createServer((req, res) => {
   const u = decodeURIComponent(req.url.split('?')[0].split('#')[0]);
   hits.push(u);
@@ -22,6 +23,7 @@ const server = http.createServer((req, res) => {
   const f = path.join(ROOT, rel);
   if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404, { 'Content-Type': 'text/plain' }); res.end('nicht da'); return; }
   res.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream', 'Cache-Control': 'max-age=600' });   // wie GitHub Pages
+  if (swVersion === 2 && path.basename(f) === 'sw.js') { res.end(fs.readFileSync(f, 'utf8') + '\n// zweite Fassung: erzwingt ein Update des Service Workers\n'); return; }
   fs.createReadStream(f).pipe(res);
 });
 server.on('connection', s => { sockets.add(s); s.on('close', () => sockets.delete(s)); });
@@ -59,6 +61,20 @@ server.on('connection', s => { sockets.add(s); s.on('close', () => sockets.delet
   ok('keine Anfrage außerhalb des Unterpfads', hits.every(u => u.startsWith(PREFIX)), hits.filter(u => !u.startsWith(PREFIX)).join(', '));
   ok('keine Antwort 4xx/5xx', failed.length === 0, failed.join(', '));
   ok('Konsole sauber', cons.length === 0, cons.join(' | '));
+
+  // Gleiche Herkunft wie die Schwester-App (anderes Repo, gleicher Host a-heuberger.github.io): Ein Update dieses Service Workers darf deren Zwischenspeicher nicht löschen.
+  await page.evaluate(() => caches.open('fremde-app-test').then(c => c.put('x', new Response('x'))));
+  // Abwarten, bis die NEUE Fassung fertig aktiviert ist (statechange → activated). „controllerchange“ käme schon beim Beginn der Aktivierung, vor dem Aufräumen.
+  await page.evaluate(() => navigator.serviceWorker.getRegistration().then(r => {
+    window.__swFertig = new Promise(res => { r.addEventListener('updatefound', () => { const w = r.installing; w.addEventListener('statechange', () => { if (w.state === 'activated') res(true); }); }); setTimeout(() => res(false), 10000); });
+  }));
+  swVersion = 2;
+  await page.evaluate(() => navigator.serviceWorker.getRegistration().then(r => r.update()));
+  const swNew = await page.evaluate(() => window.__swFertig);
+  const keysAfter = await page.evaluate(() => caches.keys());
+  ok('Update des Service Workers ist durchgelaufen (neue Fassung aktiv)', swNew === true);
+  ok('Update löscht den Zwischenspeicher einer anderen App auf derselben Herkunft nicht', keysAfter.includes('fremde-app-test'), keysAfter.join(', '));
+  ok('der eigene Zwischenspeicher ist weiterhin da', keysAfter.some(k => k.startsWith('torjaeger-')), keysAfter.join(', '));
 
   // Netz weg: Server abschalten, neu laden. Jetzt muss alles aus dem Zwischenspeicher des Service Workers kommen.
   await new Promise(r => { server.close(r); sockets.forEach(s => s.destroy()); });
