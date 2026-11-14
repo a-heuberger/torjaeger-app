@@ -23,7 +23,7 @@ async function open(b, preload, o = {}) {
   if (o.nodb) await page.addInitScript(() => { window.__nodb = true; });
   if (o.ls) await page.addInitScript(d => { try { localStorage.setItem('torj-local-v2', JSON.stringify(d)); } catch (e) { /* egal */ } }, o.ls);
   await page.addInitScript(fs.readFileSync('test/mock-claude.js', 'utf8'));
-  await page.clock.setFixedTime(new Date('2026-10-30T18:30:00'));
+  await page.clock.setFixedTime(new Date(o.now || '2026-10-30T18:30:00'));
   await page.goto(URL); await page.waitForTimeout(900);
   return page;
 }
@@ -271,7 +271,7 @@ const H = page => ({
   ok('I Hinweis auf die automatische Konto-Buchung', /5 € aufs Guthabenkonto/.test(await h.txt('#sec-ziele .hint')) && /bucht die App/.test(await h.txt('#sec-ziele .hint')));
   await page.fill('#f-goal-g100', 'Kinobesuch'); await h.wait(900);
   ok('I Belohnung bei 100 Toren ändern wird gespeichert', (await h.store('cfg/main')).goals.find(g => g.at === 100).reward === 'Kinobesuch');
-  await page.click('.goaled:nth-of-type(1) .stepper button[aria-label="mehr"]'); await h.wait(400);
+  await page.click('.goaled:nth-of-type(1) .stepper button[aria-label="mehr"]'); await h.wait(900);
   const at0 = (await h.store('cfg/main')).goals[0].at;
   ok('I Zahl des ersten Ziels in Fünferschritten (25 → 30)', at0 === 30, String(at0));
   for (let i = 0; i < 12; i++) { await page.click('.goaled:nth-of-type(1) .stepper button[aria-label="mehr"]'); await h.wait(60); }
@@ -283,12 +283,10 @@ const H = page => ({
   ok('I Entfernen fragt nach', /Ziel entfernen\?/.test(await h.txt('.sheet h2')));
   await page.click('[data-act="confirm-yes"]'); await h.wait(400);
   ok('I wieder elf', await h.cnt('.goaled') === 11);
-  ok('I Karten: Gelb 1 Tor, Rot 3 Tore, keine Beispiel-Listen', /1 Tor/.test(await h.txt('#sec-karten .field:nth-of-type(1) output')) && /3 Tore/.test(await h.txt('#sec-karten .field:nth-of-type(2) output')) && await h.cnt('#f-yellow, #f-red') === 0 && /verfallen nie/.test(await h.txt('#sec-karten .hint')));
+  ok('I Karten: Gelb 1 Tor einstellbar, Rot = alle Tore des Tages (ohne Zahl), keine Beispiel-Listen', /1 Tor/.test(await h.txt('#sec-karten .field:nth-of-type(1) output')) && /alle Tore des Tages/.test(await h.txt('#sec-karten .field:nth-of-type(2)')) && await h.cnt('#sec-karten .field:nth-of-type(2) .stepper') === 0 && await h.cnt('#f-yellow, #f-red') === 0 && /verfallen nie/.test(await h.txt('#sec-karten .hint')));
   const kh = await h.txt('#sec-karten .hint');
   ok('I Karten-Hinweis: Minus bei Zielen und Fang, Übersicht zeigt alle Tore, Zurückziehen, kein Grund nötig, kein Einspruch', /Jede Karte kostet Minus-Tore/.test(kh) && /bei den Zielen und beim Fang abgezogen/.test(kh) && /weiter alle Tore von Ben/.test(kh) && /Einen Grund musst du nie angeben/.test(kh) && /jede Karte zurückziehen/.test(kh) && !/Einspruch/.test(kh), kh);
-  ok('I Karten: Einstellungen heißen „Minus-Tore“ (nicht mehr Gegner-Tore)', /Gelbe Karte: Minus-Tore/.test(await h.txt('#sec-karten')) && /Rote Karte: Minus-Tore/.test(await h.txt('#sec-karten')) && !/für den Gegner/.test(await h.txt('#sec-karten')));
-  await page.click('#sec-karten .field:nth-of-type(2) .stepper button[aria-label="mehr"]'); await h.wait(500);
-  ok('I Rot auf 4 Tore gestellt und gespeichert', (await h.store('cfg/main')).redPts === 4);
+  ok('I Karten: Einstellungen heißen „Minus-Tore“ (nicht mehr Gegner-Tore)', /Gelbe Karte: Minus-Tore/.test(await h.txt('#sec-karten')) && /Rote Karte: alle Tore des Tages/.test(await h.txt('#sec-karten')) && !/für den Gegner/.test(await h.txt('#sec-karten')));
   ok('I Schnellauswahl für „Eigener Grund: Tor“ steht im Trainer, „Karten-Gründe“ nicht', /Schnellauswahl für „Eigener Grund: Tor“/.test(await h.txt('#sec-karten')) && !/Beispiele für Gelb/.test(await h.txt('#sec-karten')));
   ok('I Kurzanleitung nennt Eigener Grund, Gelb (nie verfallen), Rot, Ziele', /Eigener Grund/.test(await h.txt('.rules')) && /verfallen nie/.test(await h.txt('.rules')) && /Ein Grund ist nie nötig/.test(await h.txt('.rules')) && /von 45 bis 500 Toren/.test(await h.txt('.rules')), await h.txt('.rules'));
   ok('I Aufgaben-Idee legt Aufgabe an', true);
@@ -298,8 +296,8 @@ const H = page => ({
   ok('I Regelbuch: Gelb/Rot ohne Beispielzeilen, Karten entscheidet der Trainer', await page.evaluate(() => true));
   await page.click('[data-act="rules"]'); await h.wait(400);
   const rb = await h.txt('.sheet');
-  ok('I Regelbuch: Minus erklärt, Übersicht zeigt alle Tore, Eingelöstes bleibt, kein Einspruch', /Minus 1 Tor\./.test(rb) && /Minus 4 Tore, höchstens einmal am Tag/.test(rb) && /bei den Zielen und beim großen Fang abgezogen/.test(rb) && /In der Übersicht siehst du immer alle deine Tore/.test(rb) && /schon eingelöst hast, bleibt deine/.test(rb) && !/Einspruch|Ich sehe das anders|Der Gegner bekommt 4/.test(rb), rb.slice(0, 60));
-  ok('I Regelbuch: nie verfallen, Zwei Gelbe = Rot, keine Beispiele, Trainer entscheidet, Ziele, Sticker 1/2/5', /verfallen nie/.test(rb) && /Zwei Gelbe ergeben automatisch Rot/.test(rb) && !/Zum Beispiel/.test(rb) && /Karten entscheidet der Trainer allein/.test(rb) && /Alle deine Tore zählen zusammen/.test(rb) && /1 Punkt, seltene 2 und ultraseltene 5/.test(rb), rb.slice(0, 80));
+  ok('I Regelbuch: Minus erklärt, Übersicht zeigt alle Tore, Eingelöstes bleibt, kein Einspruch', /Minus 1 Tor\./.test(rb) && /Rot gibt es höchstens einmal am Tag/.test(rb) && /bei den Zielen und beim großen Fang abgezogen/.test(rb) && /In der Übersicht siehst du immer alle deine Tore/.test(rb) && /schon eingelöst hast, bleibt deine/.test(rb) && !/Einspruch|Ich sehe das anders|Der Gegner bekommt 4/.test(rb), rb.slice(0, 60));
+  ok('I Regelbuch: nie verfallen, Zwei Gelbe = Rot, keine Beispiele, Trainer entscheidet, Ziele, Sticker 1/2/5', /verfallen nie/.test(rb) && /Zwei Gelbe ergeben automatisch Rot/.test(rb) && !/Zum Beispiel/.test(rb) && /Karten entscheidet der Trainer allein/.test(rb) && /Alle Tore von diesem Tag gehen bei den Zielen ab, und an diesem Tag gibt es keine Tore mehr/.test(rb) && /Alle deine Tore zählen zusammen/.test(rb) && /1 Punkt, seltene 2 und ultraseltene 5/.test(rb), rb.slice(0, 80));
   await page.close();
 
   // ---- J) Umstellung von Fassung 3: Aufgaben, Ziele, Karten; wird einmal gesichert ----
@@ -419,6 +417,41 @@ const H = page => ({
   await page.click('.task[data-task="t_hefte"] [data-st="y"]'); await h.wait(2200);
   ok('N ein Tor bringt 25 zurück: Feier „25 TORE!“ noch einmal', /25 TORE!/.test(await h.txt('.celeb') || '') && /Ziel erreicht/.test(await h.txt('.celeb') || ''), (await h.txt('.celeb') || '').slice(0, 80));
   ok('N neuer Merker mit heutigem Datum', (await h.store('cfg/progress')).cel['g:g25'] === '2026-10-30', JSON.stringify((await h.store('cfg/progress')).cel));
+  await page.close();
+
+  // ---- R) Ab 14.11.2026: Rot nimmt alle Tore des Tages, danach keine Tore mehr an dem Tag ----
+  const NOW = { now: '2026-11-16T18:30:00' };
+  page = await open(b, BASE({ 'days/2026-11-16': { m: marks(['t_hefte', 't_notiert', 't_hausaufgaben', 't_zimmer', 't_eincremen'], 'y') } }), NOW); h = H(page);
+  await page.click('[data-act="lock"]'); await h.wait(300);
+  ok('R vorher 5:0, „Alle Tor“ da', (await h.txt('.digits')) === '5:0' && await h.cnt('[data-act="all-ok"]') === 1, await h.txt('.digits'));
+  await page.click('[data-act="extra-open"][data-k="r"]'); await h.wait(400);
+  ok('R Rot-Fenster: alle Tore von heute (Minus 5 Tore), danach keine Tore mehr', /Alle Tore von heute gehen bei den Zielen ab \(Minus 5 Tore\), und heute gibt es keine Tore mehr/.test(await h.txt('.sheet .sub')), await h.txt('.sheet .sub'));
+  await page.click('[data-act="ex-save"]'); await h.wait(500);
+  ok('R Banner: Minus 5 Tore, heute keine Tore mehr', /Minus 5 Tore/.test(await h.txt('#banner') || '') && /Heute gibt es keine Tore mehr/.test(await h.txt('#banner') || ''), await h.txt('#banner'));
+  ok('R Spielstand bleibt 5:0, am Rot steht −5, Leiste sagt: keine Tore mehr', (await h.txt('.digits')) === '5:0' && (await h.txt('.ev.red .evv')) === '−5' && /alle Tore des Tages/.test(await h.txt('.ev.red')) && /heute gibt es keine Tore mehr/.test(await h.txt('.cardtop.red')), await h.txt('.ev.red') + ' | ' + await h.txt('.cardtop.red'));
+  ok('R offene Aufgaben: „Tor“ gesperrt, „Kein Tor“ geht, geschaffte Tore lassen sich zurücknehmen', await page.evaluate(() => { const o = document.querySelector('.task[data-task="t_buch"]'), d = document.querySelector('.task[data-task="t_hefte"]'); return o.querySelector('[data-st="y"]').disabled && !o.querySelector('[data-st="n"]').disabled && !d.querySelector('[data-st="y"]').disabled; }));
+  ok('R „Alle Tor“ weg, „Rest: Kein Tor“ bleibt', await h.cnt('[data-act="all-ok"]') === 0 && await h.cnt('[data-act="rest-no"]') === 1);
+  await page.evaluate(() => { const b = document.querySelector('.task[data-task="t_buch"] [data-st="y"]'); b.disabled = false; b.click(); }); await h.wait(400);
+  ok('R auch erzwungen gibt es kein Tor (5:0, Aufgabe offen, nichts gespeichert)', (await h.txt('.digits')) === '5:0' && !((await h.store('days/2026-11-16')).m || {}).t_buch, await h.txt('.digits'));
+  await page.click('.task[data-task="t_buch"] [data-st="n"]'); await h.wait(400);
+  ok('R Kein Tor geht weiter: 5:1', (await h.txt('.digits')) === '5:1', await h.txt('.digits'));
+  await page.click('[data-act="extra-open"][data-k="+"]'); await h.wait(400);
+  ok('R Eigener Grund nach Rot: nur Kein Tor (Tor-Knopf gesperrt, Hinweis)', await page.evaluate(() => document.querySelector('[data-act="ex-kind"][data-k="+"]').disabled) && (await h.txt('[data-act="ex-save"]')) === 'Kein Tor eintragen' && /keine Tore mehr/.test(await h.txt('.sheet .hint')), await h.txt('[data-act="ex-save"]'));
+  await page.click('.sheet [data-act="sheet-close"]'); await h.wait(300);
+  await page.click('.tab[data-tab="achieve"]'); await h.wait(900);
+  ok('R Erfolge: 5 Tore gesamt, für die Ziele zählen 0', /Tore gesamt\s*5/.test(await h.txt('.tally')) && /−5/.test(await h.txt('.tally')), await h.txt('.tally'));
+  await page.click('.tab[data-tab="today"]'); await h.wait(300);
+  await page.click('.ev.red .ev-act button'); await h.wait(300);
+  await page.click('[data-act="confirm-yes"]'); await h.wait(500);
+  ok('R Rot zurückgezogen: Tor-Knöpfe wieder frei, kein Minus', await h.cnt('.ev.red') === 0 && await page.evaluate(() => !document.querySelector('.task[data-task="t_tisch"] [data-st="y"]').disabled) && await h.cnt('[data-act="all-ok"]') === 1);
+  await page.close();
+  // zwei Gelbe nach dem Stichtag: automatisches Rot nimmt ebenfalls alle Tore des Tages
+  page = await open(b, BASE({ 'days/2026-11-16': { m: marks(T9.slice(0, 4), 'y'), ev: [{ k: 'y', id: 'y1' }] } }), NOW); h = H(page);
+  await page.click('[data-act="lock"]'); await h.wait(300);
+  await page.click('[data-act="extra-open"][data-k="y"]'); await h.wait(400);
+  ok('R zweite Gelbe: Fenster nennt Minus zusammen 5 Tore und keine Tore mehr', /Minus zusammen 5 Tore bei den Zielen, und heute gibt es keine Tore mehr/.test(await h.txt('.sheet .sub')), await h.txt('.sheet .sub'));
+  await page.click('[data-act="ex-save"]'); await h.wait(500);
+  ok('R automatisches Rot: −4 am Rot, Tor-Knöpfe gesperrt', (await h.txt('.ev.red .evv')) === '−4' && await page.evaluate(() => document.querySelector('.task[data-task="t_buch"] [data-st="y"]').disabled), await h.txt('.ev.red .evv'));
   await page.close();
 
   console.log(errs.length ? 'FEHLER im Browser:\n' + errs.join('\n') : 'ok   keine Konsolenfehler');

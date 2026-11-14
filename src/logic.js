@@ -30,7 +30,7 @@ function defaultCfg(today) {
     cardsAck: false,     // Hinweis für Eltern gelesen (schaltet Karten frei)
     shootMode: true,     // Ben schießt jedes bestätigte Tor selbst
     yellowPts: 1,        // Gelbe Karte = so viele Minus-Tore (zählen bei Zielen und Fang, nicht in der Übersicht)
-    redPts: 3,           // Rote Karte (auch automatisch) = so viele Minus-Tore, höchstens einmal pro Tag
+    redPts: 3,           // Rote Karte bis 13.11.2026: so viele Minus-Tore (gilt nur noch für alte Tage, siehe RED_DAY_FROM)
     yellowExpiry: 0,     // 0 = Gelbe verfallen nie; zwei offene Gelbe ergeben Rot
     extraMax: 3,         // höchstens so viele Extra-Tore pro Tag
     packEvery: 6,        // alle so viele Tore gibt es eine Sticker-Tüte
@@ -242,9 +242,15 @@ function tasksOn(S, ds) {
   });
 }
 
+/* Ab diesem Tag nimmt Rot alle Tore des Tages weg, und an dem Tag gibt es danach keine Tore mehr.
+   Ältere Rote bleiben bei redPts Minus-Tore (so wurden sie gegeben, der Stand von damals ändert sich nicht). */
+const RED_DAY_FROM = '2026-11-14';
+const redTakesDay = ds => ds >= RED_DAY_FROM;
+
 /* ---------- Karten (rechnet alle Tage der Reihe nach durch) ----------
    Gelb = Verwarnung und kostet yellowPts Minus-Tore. Gelbe verfallen nie.
-   Zwei offene Gelbe = automatisch Rot. Rot kostet redPts Minus-Tore (höchstens einmal pro Tag) und leert die Gelben.
+   Zwei offene Gelbe = automatisch Rot. Rot kostet alle Tore des Tages (vor RED_DAY_FROM: redPts), höchstens einmal pro Tag, und leert die Gelben.
+   Das Minus für „alle Tore des Tages“ rechnet evalDay dazu (L.redHit), weil erst dort die Tore des Tages feststehen.
    Das Minus (L.minus) steht bei den Zielen und beim Fang auf der Rechnung. Die Tore des Tages und der Spielstand bleiben unberührt,
    und der Gegner bekommt für Karten nichts.
    Alte Fair-Play-Einträge (k: 'f') streichen weiterhin die jüngste Gelbe.
@@ -260,13 +266,13 @@ function buildLedger(S) {
   const byDay = {};
   let active = [];
   for (const ds of dates) {
-    const L = { plus: 0, plusRaw: 0, plusN: 0, yellow: 0, red: 0, autoRed: 0, fair: 0, minus: 0, rivalFree: 0, freeNo: 0, entries: [] };
+    const L = { plus: 0, plusRaw: 0, plusN: 0, yellow: 0, red: 0, autoRed: 0, fair: 0, minus: 0, redHit: false, rivalFree: 0, freeNo: 0, entries: [] };
     let redDone = false;
     const live = () => { if (expiry > 0) active = active.filter(d => daysBetween(d, ds) < expiry); };
     const sendOff = (auto, e, src) => {
       const counts = !redDone; redDone = true;
       if (auto) L.autoRed++; else L.red++;
-      if (counts) L.minus += rPts;
+      if (counts) { L.redHit = true; if (!redTakesDay(ds)) L.minus += rPts; }
       active = [];
       L.entries.push(auto ? { k: 'r', auto, capped: !counts, src } : Object.assign({}, e, { capped: !counts }));
     };
@@ -302,7 +308,7 @@ function accountNow(S, today) {
 /* ---------- Ein Tag ---------- */
 function evalDay(S, ds) {
   const day = S.days[ds] || {};
-  const r = { ds, off: false, joker: false, items: [], max: 0, gain: 0, plus: 0, plusN: 0, minus: 0, rival: 0, freeNo: 0, open: 0, ok: 0, bad: 0, na: 0, appN: 0, bonusDone: 0, judged: 0, hasData: false, result: 'none', perfect: false, complete: false, entries: [], yellow: 0, red: 0, fair: 0 };
+  const r = { ds, off: false, joker: false, items: [], max: 0, gain: 0, plus: 0, plusN: 0, minus: 0, rival: 0, freeNo: 0, open: 0, ok: 0, bad: 0, na: 0, appN: 0, bonusDone: 0, judged: 0, hasData: false, result: 'none', perfect: false, complete: false, entries: [], yellow: 0, red: 0, fair: 0, redAll: false, redMinus: 0, locked: false };
   if (day.off) { r.off = true; r.joker = !!day.joker; r.result = 'off'; return r; }
   const m = day.m || {};
   let gain = 0;
@@ -327,6 +333,9 @@ function evalDay(S, ds) {
     r.rival += led.rivalFree;                      // eigene „Kein Tor“-Gründe zählen wie eine nicht geschaffte Aufgabe
   }
   r.gain = gain + r.plus;                          // alle Tore des Tages ohne Abzug: Das zeigt die Übersicht
+  if (led && led.redHit && redTakesDay(ds)) {      // Rot nimmt alle Tore des Tages, danach gibt es an dem Tag keine Tore mehr
+    r.redAll = true; r.locked = true; r.redMinus = r.gain; r.minus += r.gain;
+  }
   r.judged = r.ok + r.bad;
   r.hasData = r.judged > 0 || r.gain > 0 || r.freeNo > 0;      // Karten allein ergeben noch kein Spiel
   if (r.hasData) r.result = r.gain > r.rival ? 'win' : r.gain === r.rival ? 'draw' : 'loss';
@@ -419,5 +428,5 @@ function coachAdvice(S, today) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { fmtEUR, fmtPlain, parseMoney, kontoBalance, kontoList, genitive, STICKER_FACT, factOf, WD_SHORT, WD_LONG, MONTHS_SHORT, fmtDate, parseDate, addDays, dowOf, mondayOf, todayStr, daysBetween, isoWeek, defaultCfg, migrateCfg, normGoals, normProg, taskSub, goalReached, goalList, nextGoal, rewardMoney, LADDER, ladderText, RARITY, RAR_ORDER, RAR_WEIGHT, PTS_PER_TOR, STICKERS, STICKER_BY, rarOf, stickerPoints, stickerBonus, pickSticker, packsLeft, tasksOn, buildLedger, ledgerOf, touch, accountNow, evalDay, evalWeek, computeStats, milestones, coachAdvice };
+  module.exports = { fmtEUR, fmtPlain, parseMoney, kontoBalance, kontoList, genitive, STICKER_FACT, factOf, WD_SHORT, WD_LONG, MONTHS_SHORT, fmtDate, parseDate, addDays, dowOf, mondayOf, todayStr, daysBetween, isoWeek, defaultCfg, migrateCfg, normGoals, normProg, taskSub, goalReached, goalList, nextGoal, rewardMoney, LADDER, ladderText, RARITY, RAR_ORDER, RAR_WEIGHT, PTS_PER_TOR, STICKERS, STICKER_BY, rarOf, stickerPoints, stickerBonus, pickSticker, packsLeft, tasksOn, RED_DAY_FROM, redTakesDay, buildLedger, ledgerOf, touch, accountNow, evalDay, evalWeek, computeStats, milestones, coachAdvice };
 }

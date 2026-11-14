@@ -48,14 +48,14 @@ Vor jedem Push auf `main` müssen **alle** Suiten grün sein: Push = live für d
 ## Spielregeln (Stand, so umgesetzt und getestet)
 
 - Aufgaben: Tor oder Kein Tor (der Gegner bekommt es). „Eigener Grund“: Tor (bis `extraMax` pro Tag) oder Kein Tor mit Freitext. Neun Standardaufgaben, die ersten drei nur an Schultagen.
-- Karten: Gelb −1, Rot −3 **Minus**, Rot höchstens einmal pro Tag, zwei offene Gelbe ergeben automatisch Rot, Gelbe verfallen nie, Trainer kann zurückziehen, **kein Einspruch**, Grund freiwillig. Karten geben dem Gegner nichts.
+- Karten: Gelb −1 **Minus**. Rot nimmt **alle Tore des Tages** als Minus, und an diesem Tag gibt es danach **keine Tore mehr** (Tor-Knöpfe, „Alle Tor“ und eigener Grund „Tor“ gesperrt; „Kein Tor“ geht weiter, Zurücknehmen geschaffter Tore auch). Das gilt ab `RED_DAY_FROM` (14.11.2026, `logic.js`); ältere Rote bleiben bei `redPts` (−3), damit sich alte Stände nicht ändern. Die Einstellung `redPts` ist deshalb nicht mehr in der Trainer-Ansicht. Rot höchstens einmal pro Tag, zwei offene Gelbe ergeben automatisch Rot, Gelbe verfallen nie, Trainer kann zurückziehen, **kein Einspruch**, Grund freiwillig. Karten geben dem Gegner nichts.
 - **Übersicht (Kopf, Heute, Woche) zeigt alle Tore ohne Abzug.** Ziele und Fang rechnen mit Tore minus Minus (`score`); ein eingelöstes Ziel bleibt erreicht; fällt ein noch nicht eingelöstes durch Minus weg, wird es beim Wiedererreichen erneut gefeiert. Sticker-Tüten zählen nach den gesamten Toren (ohne Abzug).
 - Ziele: 25, 50, 75, 100, 125, 150, 175, 200, 250, 300, 500 Tore mit Belohnungstexten des Trainers (alles änderbar). „5 € aufs Guthabenkonto“ bucht beim Einlösen aufs Konto. „Fußballpack“ ist reiner Belohnungstext und hat nichts mit den App-Stickern zu tun.
 - Sticker: 100 (60 normal, 30 selten, 10 ultraselten), 1/2/5 Punkte, 10 Punkte = 1 Bonus-Tor, Tüte alle 6 Tore (einstellbar).
 
-## Schwester-App „Diamanten-Reich“ (in Arbeit)
+## Schwester-App „Diamanten-Reich“
 
-Für die Tochter der Familie entsteht eine zweite App: Diamanten statt Tore, eine Schatzgräberin statt Torschuss, Einhörner und Prinzessinnen. Sie ist eine **Kopie dieses Gerüsts** mit eigenen Kennungen, im **selben Firebase-Projekt** mit eigenem Familiencode (die Regeln in der Firebase-Konsole werden später um dessen Block erweitert; Bens Code muss danach weiter funktionieren) und bekommt ein eigenes Repo `diamanten-reich` mit eigener Pages-Adresse. Stand, Entscheidungen des Nutzers und Plan: Branch **`schwester-app`** in diesem Repo, dort `UEBERGABE.md` und `AGENTS.md` (nicht ausgeliefert, Pages liest nur `main`). Diese App ändert sich dafür nicht, außer was unter „Gemeinsame Herkunft“ steht.
+Die zweite App der Familie (für die Tochter) liegt im eigenen Repo `a-heuberger/diamanten-reich` mit eigener Pages-Adresse, im **selben Firebase-Projekt** mit eigenem Familiencode (Firestore-Regeln haben je einen Block pro Code; nach jeder Regeländerung beide Codes prüfen). Der Branch `schwester-app` in diesem Repo ist nur noch Archiv. Eine Änderung an dieser App ändert die Schwester-App nicht, außer was unter „Gemeinsame Herkunft“ steht.
 
 ## Gotchas
 

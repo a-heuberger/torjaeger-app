@@ -104,7 +104,7 @@ function modeNote() {
 function cardTop(st) {
   const e = evalDay(S, U.today), c = S.cfg;
   let h = '';
-  if (e.red > 0) h += '<section class="cardtop red" role="status">' + cardSVG('red', 36) + '<span class="ct-tx"><b>Rote Karte heute</b><small>Minus ' + tore(c.redPts) + ' bei den Zielen.</small></span></section>';
+  if (e.red > 0) h += '<section class="cardtop red" role="status">' + cardSVG('red', 36) + '<span class="ct-tx"><b>Rote Karte heute</b><small>' + (e.redAll ? 'Die Tore von heute zählen nicht für die Ziele' + (e.redMinus ? ' (Minus ' + tore(e.redMinus) + ')' : '') + ', und heute gibt es keine Tore mehr. Morgen geht es neu los.' : 'Minus ' + tore(c.redPts) + ' bei den Zielen.') + '</small></span></section>';
   if (st.account.count > 0) {
     const d = st.account.dates[0];
     h += '<section class="cardtop yellow" role="status">' + cardSVG('yellow', 36) + '<span class="ct-tx"><b>Gelbe Karte</b><small>' + (d === U.today ? 'Heute bekommen. ' : d ? 'Seit ' + fmtShort(d) + ' ' : '') + (c.yellowPts ? 'Minus ' + tore(c.yellowPts) + ' bei den Zielen. ' : '') + 'Eine zweite Gelbe ergibt Rot.</small></span></section>';
@@ -162,19 +162,19 @@ function stampHTML(st, t, pend) {
   if (st === 'x') return '<div class="stamp x"><span>Frei</span></div>';
   return '<div class="stamp o"><span>Offen</span></div>';
 }
-function segHTML(t, st) {
-  const b = (k, cls, label, icon) => '<button class="' + cls + '" data-act="mark" data-task="' + t.id + '" data-st="' + k + '" aria-pressed="' + (st === k) + '">' + icon + '<span>' + label + '</span></button>';
+function segHTML(t, st, locked) {
+  const b = (k, cls, label, icon) => '<button class="' + cls + '" data-act="mark" data-task="' + t.id + '" data-st="' + k + '" aria-pressed="' + (st === k) + '"' + (locked && k === 'y' && st !== 'y' ? ' disabled' : '') + '>' + icon + '<span>' + label + '</span></button>';
   if (t.bonus) return '<div class="seg one">' + b('y', 'b-g', 'Geschafft: +' + t.pts + ' Tore', IC.star) + '</div>';
   return '<div class="seg two">' + b('y', 'b-y', 'Tor', IC.check) + b('n', 'b-n', 'Kein Tor', IC.cross) + '</div>';
 }
-function taskCard(it, ds) {
+function taskCard(it, ds, locked) {
   const t = it.t, st = it.st, pend = isPending(ds, t.id);
   const pts = t.bonus ? '<span class="tag bonus">Bonus +' + t.pts + '</span>' : (t.pts > 1 ? '<span class="tag">+' + t.pts + '</span>' : '');
   const fx = U.fx && U.fx.task === t.id ? ' fx' : '';
   const sub = taskSub(S.cfg, t);
   return '<li class="task st-' + (pend ? 'ready' : (st || 'o')) + (t.bonus ? ' bonus' : '') + fx + '"' + (U.unlocked ? '' : ' data-act="hint"') + ' data-task="' + t.id + '">' +
     '<div class="ico" aria-hidden="true">' + esc(t.icon) + '</div><div class="tx"><h3>' + esc(t.title) + pts + '</h3>' + (sub ? '<p>' + esc(sub) + '</p>' : '') + '</div>' +
-    '<div class="stamp-wrap">' + stampHTML(st, t, pend) + '</div>' + (U.unlocked ? segHTML(t, st) : '') + '</li>';
+    '<div class="stamp-wrap">' + stampHTML(st, t, pend) + '</div>' + (U.unlocked ? segHTML(t, st, locked) : '') + '</li>';
 }
 
 /* Einträge des Tages (Extra-Tore, Karten). Karten kann nur der Trainer zurückziehen. Ihr Minus steht rechts mit Minuszeichen. */
@@ -188,8 +188,9 @@ function entryRow(en, ds) {
     return '<li class="ev yellow"><span class="evi">' + cardSVG('yellow', 28) + '</span><span class="evt">' + esc(en.t || 'Gelbe Karte') + '<small>' + (en.t ? 'Gelbe Karte · ' : '') + 'Verwarnung' + (c.yellowPts ? ' · Minus ' + c.yellowPts : '') + '</small></span><b class="evv">' + (c.yellowPts ? '−' + c.yellowPts : '') + '</b><span></span>' + back(en.id, 'Karte zurückziehen') + '</li>';
   }
   const why = en.auto ? 'Zwei Gelbe Karten' : (en.t || 'Rote Karte');
-  const eff = en.capped ? 'heute schon Rot, kein weiteres Minus' : 'Minus ' + c.redPts;
-  return '<li class="ev red"><span class="evi">' + cardSVG('red', 28) + '</span><span class="evt">' + esc(why) + '<small>' + (en.auto ? 'Automatisch Rot' : 'Rote Karte') + ' · ' + eff + '</small></span><b class="evv">' + (en.capped ? '' : '−' + c.redPts) + '</b><span></span>' +
+  const e = evalDay(S, ds), m = e.redAll ? e.redMinus : c.redPts;
+  const eff = en.capped ? 'heute schon Rot, kein weiteres Minus' : e.redAll ? 'alle Tore des Tages, danach keine Tore mehr' : 'Minus ' + c.redPts;
+  return '<li class="ev red"><span class="evi">' + cardSVG('red', 28) + '</span><span class="evt">' + esc(why) + '<small>' + (en.auto ? 'Automatisch Rot' : 'Rote Karte') + ' · ' + eff + '</small></span><b class="evv">' + (en.capped ? '' : '−' + m) + '</b><span></span>' +
     (en.auto ? back(en.src, 'Zweite Gelbe zurückziehen') : back(en.id, 'Karte zurückziehen')) + '</li>';
 }
 const delBtn = en => (U.unlocked && en.id ? '<button class="evx" data-act="ev-del" data-id="' + en.id + '" aria-label="Eintrag löschen">' + IC.cross + '</button>' : '<span></span>');
@@ -200,7 +201,7 @@ function extrasCard(e, ds, st) {
   if (U.unlocked) {
     const left = Math.max(0, (c.extraMax == null ? 3 : c.extraMax) - e.plus);
     btns = '<div class="xbtns x2">' +
-      '<button class="xbtn wide" data-act="extra-open" data-k="+">' + IC.plus + '<span>Eigener Grund</span><small>Tor oder Kein Tor, frei eingeben' + (left <= 0 ? ' · heute keine Extra-Tore mehr' : '') + '</small></button>';
+      '<button class="xbtn wide" data-act="extra-open" data-k="+">' + IC.plus + '<span>Eigener Grund</span><small>' + (e.locked ? 'Nach Rot heute nur Kein Tor' : 'Tor oder Kein Tor, frei eingeben' + (left <= 0 ? ' · heute keine Extra-Tore mehr' : '')) + '</small></button>';
     if (!isToday) btns += '</div><p class="hint">Karten gibt es nur am Spieltag selbst.</p>';
     else if (!c.cardsAck) btns += '<button class="xbtn wide" data-act="cards-unlock">' + cardSVG('yellow', 30) + '<span>Karten freischalten</span></button></div>';
     else btns += '<button class="xbtn" data-act="extra-open" data-k="y">' + cardSVG('yellow', 30) + '<span>Gelb</span></button>' +
@@ -214,7 +215,7 @@ function dayTools(e, ds) {
   if (!U.unlocked) return '';
   if (e.off) return '<div class="day-tools"><button class="btn btn-ghost btn-sm" data-act="off">Tag wieder aktivieren</button></div>';   // nur für alte Daten
   const open = e.items.some(it => !it.t.bonus && !it.st);
-  return open ? '<div class="day-tools"><button class="btn btn-ghost btn-sm" data-act="all-ok">' + IC.check + 'Alle Tor</button><button class="btn btn-ghost btn-sm" data-act="rest-no">' + IC.cross + 'Rest: Kein Tor</button></div>' : '';
+  return open ? '<div class="day-tools">' + (e.locked ? '' : '<button class="btn btn-ghost btn-sm" data-act="all-ok">' + IC.check + 'Alle Tor</button>') + '<button class="btn btn-ghost btn-sm" data-act="rest-no">' + IC.cross + 'Rest: Kein Tor</button></div>' : '';
 }
 function shotBar() {
   const n = U.shots.length;
@@ -248,7 +249,7 @@ function viewToday(st) {
   h += '<div class="sec-h"><h2>Aufgaben</h2></div>' + dayTools(e, ds);
   if (e.off) h += '<div class="card pad"><p class="hint">' + (e.joker ? 'Joker: An diesem Tag zählt nichts.' : 'Spielfrei: An diesem Tag zählt nichts.') + '</p></div>';
   else if (!e.items.length) h += '<div class="card pad"><p class="hint">An diesem Tag gibt es keine Aufgaben.</p></div>';
-  else h += '<ul class="tasks">' + e.items.map(it => taskCard(it, ds)).join('') + '</ul>';
+  else h += '<ul class="tasks">' + e.items.map(it => taskCard(it, ds, e.locked)).join('') + '</ul>';
   if (!e.off) h += extrasCard(e, ds, st);
   if (isToday && !e.off) h += nextGoalCard(st);
   h += installHint();
@@ -455,7 +456,7 @@ function viewCoach(st) {
     '<li>' + IC.check.replace('<svg', '<svg style="color:var(--lime)"') + '<span><b>Tor</b> für jede geschaffte Aufgabe. <b>Kein Tor</b>: Der Gegner bekommt ein Tor.</span></li>' +
     '<li>' + IC.plus.replace('<svg', '<svg style="color:var(--lime)"') + '<span><b>Eigener Grund</b>: frei eingeben, wofür es ein Tor oder kein Tor gibt (Tor höchstens ' + c.extraMax + 'mal am Tag).</span></li>' +
     '<li>' + cardSVG('yellow', 22) + '<span><b>Gelb</b> ist eine Verwarnung: Minus ' + tore(c.yellowPts) + '. Gelbe verfallen nie. Zwei Gelbe ergeben automatisch Rot.</span></li>' +
-    '<li>' + cardSVG('red', 22) + '<span><b>Rot</b>: Minus ' + tore(c.redPts) + '. Ein Grund ist nie nötig. In der Übersicht bleiben alle Tore stehen, das Minus wird nur bei Zielen und Fang abgezogen.</span></li>' +
+    '<li>' + cardSVG('red', 22) + '<span><b>Rot</b>: Alle Tore des Tages gehen ab, danach gibt es an diesem Tag keine Tore mehr. Ein Grund ist nie nötig. In der Übersicht bleiben alle Tore stehen, das Minus wird nur bei Zielen und Fang abgezogen.</span></li>' +
     '<li>' + trophySVG('gold', 22) + '<span><b>Ziele</b>: Alle Tore zählen zusammen, abzüglich Minus. Es gibt Belohnungen von ' + gs[0].at + ' bis ' + gs[gs.length - 1].at + ' Toren.</span></li></ul>' +
     '<div class="row-btns"><button class="btn btn-ghost btn-sm" data-act="parents">Hinweise für Eltern</button><button class="btn btn-ghost btn-sm" data-act="rules">Regelbuch ansehen</button><button class="btn btn-ghost btn-sm" data-act="lock">' + IC.lock + 'Trainer-Modus beenden</button></div></section>';
 
@@ -478,7 +479,7 @@ function viewCoach(st) {
 
   h += '<section class="card coach-sec" id="sec-karten"><h2>Karten</h2><p class="hint">Gelb ist eine Verwarnung. Zwei Gelbe ergeben automatisch Rot. Gelbe Karten verfallen nie. Jede Karte kostet Minus-Tore: Sie werden bei den Zielen und beim Fang abgezogen und stehen bei den Erfolgen als Minus. In der Übersicht und im Kopf zeigt die App weiter alle Tore von ' + esc(c.name) + '. Einen Grund musst du nie angeben. Du kannst jede Karte zurückziehen.</p>' +
     '<div class="field"><span>Gelbe Karte: Minus-Tore</span>' + stepper('cfg', 'yellowPts', c.yellowPts, 0, 5, 1, c.yellowPts === 1 ? ' Tor' : ' Tore') + '</div>' +
-    '<div class="field"><span>Rote Karte: Minus-Tore</span>' + stepper('cfg', 'redPts', c.redPts, 1, 9, 1, c.redPts === 1 ? ' Tor' : ' Tore') + '<small>Wirkt höchstens einmal pro Tag, auch bei automatischem Rot.</small></div>' +
+    '<div class="field"><span>Rote Karte: alle Tore des Tages</span><small>Bei Rot gehen alle Tore dieses Tages bei den Zielen ab, und an diesem Tag gibt es danach keine Tore mehr (Kein Tor geht weiter). Wirkt höchstens einmal pro Tag, auch bei automatischem Rot.</small></div>' +
     '<div class="field"><span>Eigene Tor-Gründe höchstens pro Tag</span>' + stepper('cfg', 'extraMax', c.extraMax, 1, 10, 1, '') + '</div>' +
     '<div class="field"><span>Schnellauswahl für „Eigener Grund: Tor“</span><textarea id="f-good" data-bind="list:goodReasons" rows="5">' + esc(c.goodReasons.join('\n')) + '</textarea></div></section>';
 

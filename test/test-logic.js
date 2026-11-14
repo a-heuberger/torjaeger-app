@@ -59,7 +59,7 @@ eq('Konto leer nach Rot', L.accountNow(S, '2026-10-19').count, 0);
 // Gelbe verfallen nie: auch nach Monaten ergibt die zweite Gelbe Rot
 S = mk({ '2026-10-19': { ev: [Y] }, '2027-02-03': { m: ALL, ev: [Y2] } });
 e = L.evalDay(S, '2027-02-03');
-eq('Gelb im Oktober + Gelb im Februar = Rot (Minus 1 + 3 am Tag des Februar)', [e.red, e.minus, L.accountNow(S, '2027-02-03').count], [1, 4, 0]);
+eq('Gelb im Oktober + Gelb im Februar = Rot (Minus 1 + alle 9 Tore am Tag des Februar)', [e.red, e.minus, L.accountNow(S, '2027-02-03').count], [1, 10, 0]);
 eq('eine Gelbe vom Oktober gilt auch im Dezember noch', L.accountNow(mk({ '2026-10-19': { ev: [Y] } }), '2026-12-01').count, 1);
 S = mk({ '2026-10-19': { ev: [Y] } }, { v: 4, yellowExpiry: 7 });
 eq('ein eingestellter Verfall wird ignoriert', [S.cfg.yellowExpiry, L.accountNow(S, '2027-03-01').count], [0, 1]);
@@ -95,6 +95,31 @@ S = mk({ '2026-10-19': { m: ALL, ev: [Y] } }, { v: 4, redPts: 5, yellowPts: 0 })
 eq('Gelb ohne Minus möglich (0 eingestellt)', [L.evalDay(S, '2026-10-19').minus, L.evalDay(S, '2026-10-19').yellow], [0, 1]);
 S = mk({ '2026-10-19': { m: ALL, ev: [Y, R] } }, { cardsOn: false, yellowLimit: 5 });
 eq('uralte Einstellungen (Abzug aus, Limit 5) wirken nicht: Gelb 1 + Rot 3', [L.evalDay(S, '2026-10-19').gain, L.evalDay(S, '2026-10-19').minus, S.cfg.cardsOn, S.cfg.yellowLimit], [9, 4, undefined, undefined]);
+
+// ---- Ab 14.11.2026: Rot nimmt alle Tore des Tages, danach gibt es an dem Tag keine Tore mehr ----
+eq('Stichtag', [L.RED_DAY_FROM, L.redTakesDay('2026-11-13'), L.redTakesDay('2026-11-14')], ['2026-11-14', false, true]);
+S = mk({ '2026-11-16': { m: ALL, ev: [R] } });
+e = L.evalDay(S, '2026-11-16');
+eq('Rot neu: Minus = alle 9 Tore des Tages, Spielstand 9:0 bleibt, Tag gesperrt', [e.red, e.minus, e.redMinus, e.gain, e.rival, e.redAll, e.locked, e.result], [1, 9, 9, 9, 0, true, true, 'win']);
+S = mk({ '2026-11-16': { m: { t_hefte: 'y', t_zimmer: 'y', t_buch: 'n' }, ev: [{ k: '+', v: 2, id: 'p1' }, R] } });
+e = L.evalDay(S, '2026-11-16');
+eq('Rot neu: Aufgaben-Tore und eigene Tore zählen beide (2 + 2 = 4)', [e.gain, e.minus, e.rival], [4, 4, 1]);
+S = mk({ '2026-11-16': { ev: [R] } });
+e = L.evalDay(S, '2026-11-16');
+eq('Rot neu ohne Tore: kein Minus, aber gesperrt', [e.minus, e.locked, e.hasData], [0, true, false]);
+S = mk({ '2026-11-16': { m: ALL, ev: [Y, Y2] } });
+e = L.evalDay(S, '2026-11-16');
+eq('zwei Gelbe neu: Minus 1 + 1 + alle 9 Tore, gesperrt', [e.red, e.minus, e.locked], [1, 11, true]);
+S = mk({ '2026-11-16': { m: ALL, ev: [R, { k: 'r', id: 'r2' }] } });
+e = L.evalDay(S, '2026-11-16');
+eq('Rot neu: höchstens einmal pro Tag', [e.red, e.minus], [2, 9]);
+S = mk({ '2026-11-13': { m: ALL, ev: [R] }, '2026-11-16': { m: ALL } });
+eq('alte Rote vor dem Stichtag bleiben bei Minus 3, nicht gesperrt; andere Tage ohne Sperre', [L.evalDay(S, '2026-11-13').minus, L.evalDay(S, '2026-11-13').locked, L.evalDay(S, '2026-11-16').locked, L.evalDay(S, '2026-11-16').minus], [3, false, false, 0]);
+S = mk({ '2026-11-15': { m: ALL }, '2026-11-16': { m: ALL, ev: [R] } });
+const sNew = L.computeStats(S, '2026-11-16');
+eq('Gesamtstand: Übersicht 18 Tore, Ziele zählen 9 (nur der Rot-Tag fällt weg)', [sNew.total, sNew.minus, sNew.score], [18, 9, 9]);
+S.days['2026-11-16'].ev = []; L.touch(S);
+eq('Rot zurückgezogen: Sperre und Minus weg', [L.evalDay(S, '2026-11-16').locked, L.evalDay(S, '2026-11-16').minus], [false, 0]);
 
 // ---- Eigener Grund: Tor (Extra) und Kein Tor ----
 S = mk({ '2026-10-19': { m: { t_hefte: 'y' }, ev: [{ k: '+', v: 2, t: 'Hund ausgeführt', id: 'x1' }] } });

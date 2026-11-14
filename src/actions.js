@@ -95,6 +95,7 @@ function finishRitual(ds) { if (!checkPerfect(ds)) dayBanner(ds); scheduleCeleb(
 function setMark(ds, id, st) {
   if (!taskById(id)) return;
   const day = ensureDay(ds), cur = day.m[id] || null, next = cur === st ? null : st, b = snap(ds);
+  if (next === 'y' && evalDay(S, ds).locked) { toast('Nach der Roten Karte gibt es heute keine Tore mehr.'); return; }   // nach Rot keine Tore mehr an diesem Tag
   if (next) day.m[id] = next; else delete day.m[id];
   U.shots = U.shots.filter(s => !(s.ds === ds && s.id === id));
   markChanged(); savedDay(ds);
@@ -127,6 +128,7 @@ ACT.mark = el => {
 ACT['all-ok'] = () => {
   if (!U.unlocked) return;
   const ds = U.date, e = evalDay(S, ds), b = snap(ds), day = ensureDay(ds);
+  if (e.locked) { toast('Nach der Roten Karte gibt es heute keine Tore mehr.'); return; }
   let n = 0;
   e.items.forEach(it => { if (!it.t.bonus && !it.st) { day.m[it.t.id] = 'y'; n++; if (S.cfg.shootMode !== false) U.shots.push({ ds, id: it.t.id }); } });
   if (!n) return;
@@ -199,18 +201,21 @@ const EX_TITLE = { '+': 'Eigener Grund', n: 'Eigener Grund', y: 'Gelbe Karte', r
 const EX_OK = { '+': 'Tor eintragen', n: 'Kein Tor eintragen', y: 'Verwarnung eintragen', r: 'Rote Karte eintragen' };
 /* Karten-Fenster: kurz, mit vorbereitetem Knopf „Verwarnung eintragen“. Ein Grund ist freiwillig und hat keine Vorschläge. */
 function exHTML() {
-  const x = U.ex, c = S.cfg, k = x.k, e = evalDay(S, U.date), st = ST();
+  const x = U.ex, c = S.cfg, k = x.k, e = evalDay(S, U.date), st = ST(), all = redTakesDay(U.date);
   const gy = c.yellowPts ? 'Minus ' + tore(c.yellowPts) + ' bei den Zielen.' : 'Dafür gibt es kein Minus.';
   const free = k === '+' || k === 'n';
   const sub = {
     '+': 'Frei eingeben, wofür es ein Tor gibt.',
     n: 'Frei eingeben, wofür es kein Tor gibt. Der Gegner bekommt ' + tore(x.v) + '.',
-    y: st.account.count > 0 ? 'Das ist die zweite Gelbe: Sie ergibt automatisch Rot. Minus zusammen ' + tore(c.yellowPts + (e.red ? 0 : c.redPts)) + ' bei den Zielen.' : gy + ' Eine zweite Gelbe ergibt automatisch Rot.',
-    r: 'Minus ' + tore(c.redPts) + ' bei den Zielen' + (e.red ? ' (heute gab es schon Rot, kein weiteres Minus)' : '') + '. In der Übersicht bleiben alle Tore stehen.',
+    y: st.account.count > 0 ? 'Das ist die zweite Gelbe: Sie ergibt automatisch Rot. Minus zusammen ' + tore(c.yellowPts + (e.red ? 0 : all ? e.gain : c.redPts)) + ' bei den Zielen' + (all && !e.red ? ', und heute gibt es keine Tore mehr' : '') + '.' : gy + ' Eine zweite Gelbe ergibt automatisch Rot.',
+    r: all
+      ? (e.red ? 'Heute gab es schon Rot, kein weiteres Minus.' : 'Alle Tore von heute gehen bei den Zielen ab (Minus ' + tore(e.gain) + '), und heute gibt es keine Tore mehr.') + ' In der Übersicht bleiben alle Tore stehen.'
+      : 'Minus ' + tore(c.redPts) + ' bei den Zielen' + (e.red ? ' (heute gab es schon Rot, kein weiteres Minus)' : '') + '. In der Übersicht bleiben alle Tore stehen.',
   }[k];
   const left = Math.max(0, c.extraMax - e.plus);
   let h = '<h2' + (k === 'y' || k === 'r' ? ' class="h-card">' + cardSVG(k === 'y' ? 'yellow' : 'red', 34) : '>') + EX_TITLE[k] + '</h2><p class="sub">' + sub + '</p>';
-  if (free) h += '<div class="seg two" role="group" aria-label="Tor oder Kein Tor"><button class="b-y" data-act="ex-kind" data-k="+" aria-pressed="' + (k === '+') + '">' + IC.check + '<span>Tor</span></button><button class="b-n" data-act="ex-kind" data-k="n" aria-pressed="' + (k === 'n') + '">' + IC.cross + '<span>Kein Tor</span></button></div>';
+  if (free && e.locked) h += '<p class="hint">Nach der Roten Karte gibt es heute keine Tore mehr, nur noch Kein Tor.</p>';
+  if (free) h += '<div class="seg two" role="group" aria-label="Tor oder Kein Tor"><button class="b-y" data-act="ex-kind" data-k="+" aria-pressed="' + (k === '+') + '"' + (e.locked ? ' disabled' : '') + '>' + IC.check + '<span>Tor</span></button><button class="b-n" data-act="ex-kind" data-k="n" aria-pressed="' + (k === 'n') + '">' + IC.cross + '<span>Kein Tor</span></button></div>';
   if (k === '+' && c.goodReasons.length) h += '<div class="chips-r" role="group" aria-label="Schnellauswahl">' + c.goodReasons.map((t, i) => '<button data-act="ex-chip" data-i="' + i + '" aria-pressed="' + (x.t === t) + '">' + esc(t) + '</button>').join('') + '</div>';
   h += '<div class="field"><span>' + (free ? 'Wofür?' : 'Grund (freiwillig)') + '</span><input type="text" id="ex-text" data-ex="t" value="' + esc(x.t) + '" maxlength="90" autocomplete="off" placeholder="' + (free ? 'z. B. Hund ausgeführt' : 'Kein Grund nötig') + '"></div>';
   if (free) h += '<div class="field"><span>' + (k === '+' ? 'Wie viele Tore? (heute noch ' + left + ' möglich)' : 'Wie viele Tore bekommt der Gegner?') + '</span><div class="vals">' + [1, 2, 3].map(v => '<button data-act="ex-val" data-v="' + v + '" aria-pressed="' + (x.v === v) + '"' + (k === '+' && v > left ? ' disabled' : '') + '>+' + v + '</button>').join('') + '</div></div>';
@@ -222,7 +227,7 @@ ACT['extra-open'] = el => {
   const k = el.dataset.k;
   if ((k === 'y' || k === 'r') && !S.cfg.cardsAck) { ACT['cards-unlock'](); return; }
   if ((k === 'y' || k === 'r') && U.date !== U.today) { toast('Karten gibt es nur am Spieltag selbst.'); return; }
-  U.ex = { k, v: 1, t: '' };
+  U.ex = { k: k === '+' && evalDay(S, U.date).locked ? 'n' : k, v: 1, t: '' };
   openSheet(exHTML(), 'sheet-ex');
 };
 ACT['ex-chip'] = el => {
@@ -232,7 +237,7 @@ ACT['ex-chip'] = el => {
 ACT['ex-val'] = el => { U.ex.v = +el.dataset.v; setSheet(exHTML()); };
 ACT['ex-kind'] = el => {
   const x = U.ex; if (!x || (x.k !== '+' && x.k !== 'n')) return;
-  x.k = el.dataset.k === 'n' ? 'n' : '+';
+  x.k = el.dataset.k === 'n' || evalDay(S, U.date).locked ? 'n' : '+';
   if (x.k === '+') { const e = evalDay(S, U.date), left = Math.max(0, S.cfg.extraMax - e.plus); if (x.v > left) x.v = Math.max(1, left); }
   setSheet(exHTML());
 };
@@ -240,6 +245,7 @@ ACT['ex-save'] = () => {
   const x = U.ex, ds = U.date, k = x.k, c = S.cfg, reason = (x.t || '').trim();
   const b = snap(ds), e0 = evalDay(S, ds);
   if (k === '+') {
+    if (e0.locked) { toast('Nach der Roten Karte gibt es heute keine Tore mehr.'); return; }
     const left = Math.max(0, c.extraMax - e0.plus);
     if (left <= 0) { toast('Heute sind höchstens ' + c.extraMax + ' eigene Tor-Gründe möglich.'); return; }
     addEvent(ds, { k: '+', v: Math.min(x.v, left), t: reason || 'Eigener Grund' });
@@ -254,7 +260,10 @@ ACT['ex-save'] = () => {
   else if (k === 'n') { Snd.soft(); Hap.go(10); banner({ icon: IC.cross, title: 'Kein Tor: ' + esc(reason || 'eigener Grund'), sub: 'Der Gegner bekommt ' + tore(x.v) + '.', tone: '', ms: 3200 }); }
   else if (newRed > 0) {
     const auto = e1.entries.some(en => en.auto) && !e0.entries.some(en => en.auto);
-    banner({ icon: cardSVG('red', 40), title: auto ? 'Zweite Gelbe: Rot!' : 'Rote Karte', sub: why + (gained > 0 ? 'Minus ' + tore(gained) + '.' : 'Heute gab es schon Rot, kein weiteres Minus.'), tone: 'red', ms: 4200 });
+    const sub = e1.redAll
+      ? (gained > 0 ? 'Minus ' + tore(gained) + ' bei den Zielen. ' : '') + 'Heute gibt es keine Tore mehr.'
+      : gained > 0 ? 'Minus ' + tore(gained) + '.' : 'Heute gab es schon Rot, kein weiteres Minus.';
+    banner({ icon: cardSVG('red', 40), title: auto ? 'Zweite Gelbe: Rot!' : 'Rote Karte', sub: why + sub, tone: 'red', ms: 4200 });
   } else banner({ icon: cardSVG('yellow', 40), title: 'Gelbe Karte', sub: why + (gained > 0 ? 'Minus ' + tore(gained) + '. ' : '') + 'Eine zweite Gelbe ergibt Rot.', tone: 'yellow', ms: 3800 });
   render(); afterMutation(ds, b);
 };
@@ -485,7 +494,7 @@ function rulesHTML() {
     '<p><b>Tor</b> für jede geschaffte Aufgabe. <b>Kein Tor</b>, wenn es nicht geklappt hat: Dann bekommt der Gegner ein Tor.</p>' +
     '<p><b>Eigener Grund:</b> Der Trainer kann frei eintragen, wofür es ein Tor oder kein Tor gibt (Tore höchstens ' + c.extraMax + ' am Tag).</p>' +
     '<h3>' + cardSVG('yellow', 20) + ' Gelbe Karte</h3><p>Eine Verwarnung. ' + gy + ' Gelbe Karten verfallen nie. <b>Zwei Gelbe ergeben automatisch Rot.</b></p>' +
-    '<h3>' + cardSVG('red', 20) + ' Rote Karte</h3><p>Minus ' + tore(c.redPts) + ', höchstens einmal am Tag. Karten entscheidet der Trainer allein, und er kann sie zurückziehen.</p>' +
+    '<h3>' + cardSVG('red', 20) + ' Rote Karte</h3><p>Alle Tore von diesem Tag gehen bei den Zielen ab, und an diesem Tag gibt es keine Tore mehr. Rot gibt es höchstens einmal am Tag. Am nächsten Tag geht es neu los. Karten entscheidet der Trainer allein, und er kann sie zurückziehen.</p>' +
     '<h3>Minus</h3><p>Das Minus von Karten wird bei den Zielen und beim großen Fang abgezogen. In der Übersicht siehst du immer alle deine Tore. Bei den Erfolgen steht, was davon abgeht und was für die Ziele zählt.</p>' +
     '<h3>Ziele</h3><p>Alle deine Tore zählen zusammen, abzüglich Minus. Bei den Erfolgen siehst du, was du bei welchem Stand bekommst und wie viele Tore noch fehlen. Beim letzten Ziel ist der große Fang an Land. Eine Belohnung, die du schon eingelöst hast, bleibt deine.</p>' +
     '<h3>Sticker</h3><p>Alle ' + c.packEvery + ' Tore gibt es eine Sticker-Tüte. Normale Sticker zählen 1 Punkt, seltene 2 und ultraseltene 5. Je ' + PTS_PER_TOR + ' Punkte ergeben 1 Tor.</p>' +
