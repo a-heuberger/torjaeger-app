@@ -383,5 +383,42 @@ eq('Meilenstein: perfekter Tag, Tüte, noch kein Ziel', [before.perfect, after.p
 S.days['2026-10-20'] = { m: ALL }; S.days['2026-10-21'] = { m: ALL }; L.touch(S);
 eq('Meilenstein: 27 Tore erreichen das Ziel bei 25', [L.milestones(S, '2026-10-21', '2026-10-21').goals, L.milestones(S, '2026-10-21', '2026-10-21').caught], [['g25'], false]);
 
+// ---- Spielzeit für die Minispiele ----
+{
+  const at = (ds, hh, mm) => { const d = L.parseDate(ds); d.setHours(hh, mm || 0, 0, 0); return d; };
+  // Do 12.11.: 7 Tore, 2 Kein Tor -> Fr 13.11.: 7 Minuten Minispiele, 2 Minuten Bonusspiel
+  const m7 = Object.assign(marks(T9.slice(0, 7), 'y'), marks(T9.slice(7), 'n'));
+  let P = mk({ '2026-11-12': { m: m7 } });
+  let ps = L.playState(P, at('2026-11-13', 13, 59));
+  eq('Spielzeit: 7:2 gestern = 7 Min Minispiele, 2 Min Bonus, vor 14 Uhr zu', [ps.goals, ps.rival, ps.reg, ps.bonus, ps.open, ps.regLeft, ps.bonusLeft], [7, 2, 420, 120, false, 420, 120]);
+  ps = L.playState(P, at('2026-11-13', 14, 0));
+  eq('Spielzeit: ab 14:00 offen', ps.open, true);
+  eq('Spielzeit: nur am Tag danach (heute zählt nicht, übermorgen nichts)', [L.playState(P, at('2026-11-12', 18)).reg, L.playState(P, at('2026-11-14', 18)).reg], [0, 0]);
+  eq('Spielzeit: Vorgabe 14 Uhr, sechs Spiele und ein Bonusspiel', [L.PLAY_FROM_HOUR, L.GAME_IDS.length, L.BONUS_GAME, L.migrateCfg({}, '2026-11-13').games], [14, 6, 'boss', true]);
+  // Verbrauch
+  L.playUse(P, '2026-11-13', 'r', 100); L.playUse(P, '2026-11-13', 'b', 30);
+  ps = L.playState(P, at('2026-11-13', 15));
+  eq('Spielzeit: Verbrauch getrennt nach Minispielen und Bonus', [ps.regLeft, ps.bonusLeft, P.play], [320, 90, { d: '2026-11-13', r: 100, b: 30, best: {} }]);
+  L.playUse(P, '2026-11-13', 'r', 999);
+  eq('Spielzeit: nie unter null', L.playState(P, at('2026-11-13', 15)).regLeft, 0);
+  eq('Spielzeit: Verbrauch von gestern zählt heute nicht', L.playState(P, at('2026-11-14', 15)).usedR, 0);
+  eq('Rekord: erster Wert ist kein „neuer Rekord“, besserer schon, schlechterer nicht', [L.playRecord(P, 'juggle', 12), L.playRecord(P, 'juggle', 20), L.playRecord(P, 'juggle', 3), L.playRecord(P, 'memory', 14), L.playRecord(P, 'memory', 11), L.playRecord(P, 'memory', 18)], [false, true, false, false, true, false]);
+  L.playUse(P, '2026-11-14', 'r', 5);
+  eq('Spielzeit: neuer Tag fängt bei 0 an, Rekorde bleiben', P.play, { d: '2026-11-14', r: 5, b: 0, best: { juggle: 20, memory: 11 } });
+  // Rote Karte gestern: Tore zählen nicht, die Gegentore schon
+  P = mk({ '2026-11-14': { m: Object.assign(marks(WEEKEND.slice(0, 4), 'y'), marks(WEEKEND.slice(4), 'n')), ev: [R] } });
+  ps = L.playState(P, at('2026-11-15', 16));
+  eq('Spielzeit: Rot gestern = keine Minuten für Tore, Bonus bleibt', [ps.goals, ps.rival, ps.reg, ps.bonus], [0, 2, 0, 120]);
+  // Gelbe Karte ändert die Spielzeit nicht (Spielstand bleibt), eigene Gründe zählen mit
+  P = mk({ '2026-11-14': { m: marks(WEEKEND.slice(0, 3), 'y'), ev: [Y, { k: '+', v: 1, id: 'p1' }, { k: 'n', v: 1, id: 'n1' }] } });
+  ps = L.playState(P, at('2026-11-15', 16));
+  eq('Spielzeit: Gelb zieht nichts ab, eigene Gründe zählen', [ps.goals, ps.rival], [4, 1]);
+  eq('Spielzeit: Spielfrei/Joker gestern = nichts', L.playState(mk({ '2026-11-14': { off: true, joker: true } }), at('2026-11-15', 16)).reg, 0);
+  // Zusammenführen zweier Geräte
+  eq('mergePlay: gleicher Tag, das Größere gilt', L.mergePlay({ d: '2026-11-15', r: 30, b: 0 }, { d: '2026-11-15', r: 10, b: 20 }), { d: '2026-11-15', r: 30, b: 20, best: {} });
+  eq('mergePlay: neuerer Tag gilt, Rekorde: der bessere', L.mergePlay({ d: '2026-11-14', r: 300, b: 0, best: { memory: 12, boss: 300 } }, { d: '2026-11-15', r: 10, b: 0, best: { memory: 15, boss: 340, x: -1 } }), { d: '2026-11-15', r: 10, b: 0, best: { memory: 12, boss: 340 } });
+  eq('fmtMinSec', ['0', 59.2, 60, 425].map(L.fmtMinSec), ['0:00', '1:00', '1:00', '7:05']);
+}
+
 console.log(fail ? `\n${fail} FEHLER, ${pass} ok` : `alle ${pass} Prüfungen ok`);
 process.exit(fail ? 1 : 0);

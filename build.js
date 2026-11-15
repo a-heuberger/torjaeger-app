@@ -10,7 +10,7 @@ const r = f => fs.readFileSync(path.join(root, 'src', f), 'utf8');
 const sha = (s, enc) => crypto.createHash('sha256').update(s).digest(enc || 'hex');
 const mkdir = d => fs.mkdirSync(d, { recursive: true });
 
-const parts = ['logic.js', 'svg.js', 'fx.js', 'store.js', 'cloud.js', 'views.js', 'actions.js'].map(r).join('\n');
+const parts = ['logic.js', 'svg.js', 'fx.js', 'store.js', 'cloud.js', 'views.js', 'actions.js', 'games.js'].map(r).join('\n') + '\nboot();';
 const body = r('body.html');
 
 /* ---- Claude-Seite ---- */

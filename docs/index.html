@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-pXT8JIOvUGa/IOL0I5JUEmidWcPCh3jaVg+o9gJS/sA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://www.google.com; font-src 'self'; connect-src 'self' https://firestore.googleapis.com wss://firestore.googleapis.com; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-bOSd9i7yt3u3pC98e3iYxuyubC3OJurr0Oqxwh1dLkA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://www.google.com; font-src 'self'; connect-src 'self' https://firestore.googleapis.com wss://firestore.googleapis.com; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
 <title>Torjäger</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#06110b">
@@ -747,6 +747,140 @@ p.mode-note { padding: 0 4px; margin: -4px 0 -2px; color: var(--ink-3); }
 .linkbox { width: 100%; font: 600 14px/1.3 ui-monospace, Menlo, monospace; word-break: break-all; }
 .gate-main { padding-top: 20px; }
 
+/* ============ Minispiele ============ */
+.games { padding: 12px; display: grid; gap: 10px; }
+.play-time { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pt-box { display: grid; gap: 2px; padding: 10px 12px; border-radius: 16px; border: 1px solid var(--line-2); background: rgba(198, 255, 61, .1); }
+.pt-box.bon { background: rgba(255, 90, 82, .12); }
+.pt-box b { font: 900 italic 24px/1 var(--f-display); text-transform: uppercase; color: var(--lime); }
+.pt-box.bon b { color: #ff8f88; }
+.pt-box small { font: 600 13px/1.25 var(--f-body); color: var(--ink-2); }
+.pt-box.empty b { color: var(--ink-3); }
+.pt-bar { height: 6px; margin-top: 4px; border-radius: 999px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.pt-bar i { display: block; height: 100%; border-radius: 999px; background: var(--lime); }
+.pt-box.bon .pt-bar i { background: #ff8f88; }
+.pt-note { margin: 0; }
+.gtiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.gtile { position: relative; min-width: 0; display: grid; justify-items: center; align-content: start; gap: 3px; padding: 10px 4px; border-radius: 18px; border: 1px solid var(--line-2); background: linear-gradient(180deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .03)); color: var(--ink); text-align: center; font: inherit; }
+.gtile:active { transform: translateY(2px); }
+.gtile b { font: 900 italic 18px/1.05 var(--f-display); text-transform: uppercase; overflow-wrap: anywhere; }
+.gtile small { font: 600 12px/1.2 var(--f-body); color: var(--ink-2); overflow-wrap: anywhere; }
+.gtile.off { opacity: .45; }
+.gtile.boss { width: 100%; grid-template-columns: auto 1fr; justify-items: start; align-items: center; text-align: left; column-gap: 12px; padding: 10px 14px; background: linear-gradient(135deg, rgba(255, 90, 82, .28), rgba(255, 138, 31, .14)); border-color: rgba(255, 90, 82, .55); }
+.gtile.boss .gt-art { grid-row: span 2; }
+.gtile.boss b { font-size: 22px; }
+.gt-lock { position: absolute; top: 6px; right: 6px; width: 16px; height: 16px; color: var(--ink-2); }
+.gt-lock svg { width: 16px; height: 16px; }
+.gt-art { height: 44px; display: grid; place-items: center; }
+.gt-elf { position: relative; display: block; }
+.gt-elf i { position: absolute; left: 50%; bottom: -4px; margin-left: -9px; }
+.gt-keep { font-size: 28px; display: flex; align-items: center; gap: 2px; }
+.gt-mem { display: flex; gap: 3px; }
+.gt-mem i { font-style: normal; font-size: 20px; width: 28px; height: 34px; display: grid; place-items: center; border-radius: 7px; background: #fff; }
+.gt-cups { display: flex; align-items: flex-end; gap: 2px; }
+.gt-cups i { transform: translateY(-14px); }
+.gt-jug { display: grid; justify-items: center; line-height: 1; }
+.gt-jug i { font-style: normal; font-size: 18px; }
+.gt-math { font: 900 italic 26px var(--f-display); color: var(--gold); }
+@media (max-width: 380px) { .gtile b { font-size: 16px; } .gtiles { gap: 6px; } }
+
+.sheet-game { gap: 12px; }
+.g-head { display: flex; align-items: center; gap: 10px; }
+.g-head h2 { margin: 0; flex: 1; min-width: 0; }
+.g-clock { flex: none; padding: 6px 12px; border-radius: 999px; background: rgba(198, 255, 61, .14); border: 1px solid rgba(198, 255, 61, .5); font: 700 16px var(--f-body); color: var(--ink); font-variant-numeric: tabular-nums; }
+.g-clock b { font: 900 italic 20px var(--f-display); }
+.g-clock:empty { display: none; }
+.g-clock.low { background: rgba(255, 90, 82, .2); border-color: var(--red); animation: pulse 1s ease-in-out infinite; }
+.g-x { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .08); color: var(--ink); }
+.g-x svg { width: 18px; height: 18px; }
+.g-foot { display: grid; gap: 10px; min-height: 52px; }
+.g-msg { margin: 0; text-align: center; font: 600 16px/1.35 var(--f-body); color: var(--ink-2); }
+.g-msg b { font: 900 italic 20px var(--f-display); text-transform: uppercase; color: var(--lime); }
+.g-foot .row-btns { justify-content: center; }
+.g-over { display: grid; justify-items: center; gap: 8px; text-align: center; padding: 10px 0; }
+.g-over p { margin: 0; }
+.g-over b { font: 900 italic 26px var(--f-display); text-transform: uppercase; }
+.g-whistle svg { width: 64px; height: 64px; color: var(--gold); }
+
+/* gemeinsame Spielfläche */
+.catch-top { display: flex; align-items: center; gap: 10px; }
+.ct-score { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: rgba(255, 255, 255, .1); border: 1px solid var(--line-2); font: 700 16px var(--f-body); white-space: nowrap; }
+.ct-score b { font: 900 italic 22px var(--f-display); color: var(--lime); }
+.ct-score.miss b { color: #ff8f88; }
+.ct-time { flex: 1; height: 12px; border-radius: 999px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.ct-time i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--lime), var(--gold)); }
+.catch-area, .jug-area, .boss-area { position: relative; height: min(56vh, 420px); border-radius: 22px; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; background: repeating-linear-gradient(180deg, #1f6a33 0 44px, #237a3a 44px 88px); }
+.catch-start { position: absolute; inset: 0; z-index: 3; display: grid; place-content: center; justify-items: center; gap: 12px; padding: 20px; text-align: center; color: #fff; font: 700 18px/1.35 var(--f-body); background: rgba(0, 0, 0, .35); }
+.catch-start.static { position: static; background: none; }
+.catch-start p { margin: 0; }
+.catch-start .hint { color: var(--ink-2); }
+.fall { position: absolute; top: 0; padding: 6px; border: 0; background: none; touch-action: none; will-change: transform; }
+.fall svg { display: block; pointer-events: none; }
+.fall.hit { opacity: 0; transform: scale(1.5); transition: opacity .2s; }
+.keep-line { position: absolute; left: 0; right: 0; bottom: 30px; height: 4px; background: rgba(255, 255, 255, .7); }
+.keep-line::after { content: ""; position: absolute; left: 0; right: 0; top: 4px; height: 26px; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .25) 0 2px, transparent 2px 12px); }
+
+/* Elfmeter */
+.elf-score { display: flex; justify-content: space-between; font: 700 16px var(--f-body); color: var(--ink-2); }
+.elf-score b { font: 900 italic 24px var(--f-display); color: var(--lime); }
+.elf-stage { position: relative; height: 290px; border-radius: 22px; overflow: hidden; touch-action: manipulation; -webkit-user-select: none; user-select: none; background: linear-gradient(180deg, #0b2a17 0 30%, #1f6a33 30%); }
+.elf-goal { position: absolute; left: 5%; right: 5%; top: 22px; height: 140px; border: 6px solid #fff; border-bottom: 0; border-radius: 6px 6px 0 0; cursor: crosshair; }
+.elf-net { position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(rgba(255, 255, 255, .28) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .28) 1px, transparent 1px); background-size: 14px 14px; }
+.elf-goal.scored .elf-net { animation: netrip .5s; }
+.elf-keeper { position: absolute; bottom: 0; left: 50%; width: 30%; margin-left: -15%; display: grid; place-items: end center; pointer-events: none; transition: transform .18s ease-out; }
+.elf-keeper .monster { width: 64px; height: 64px; }
+.glove { position: absolute; bottom: 30px; font-style: normal; font-size: 22px; }
+.glove.l { left: 2px; } .glove.r { right: 2px; }
+.elf-spot { position: absolute; left: 50%; bottom: 26px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: #fff; }
+.elf-ball { position: absolute; left: 50%; bottom: 20px; margin-left: -17px; transition: transform .42s cubic-bezier(.2, .7, .3, 1); pointer-events: none; }
+.elf-ball svg { display: block; }
+
+/* Memory */
+.mem-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.mcard { aspect-ratio: 1; padding: 0; border: 0; background: none; perspective: 600px; }
+.mc-in { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .35s; }
+.mcard.open .mc-in { transform: rotateY(180deg); }
+.mc-back, .mc-front { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 14px; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+.mc-back { background: repeating-linear-gradient(90deg, #1f6a33 0 12px, #237a3a 12px 24px); box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .45); }
+.mc-front { transform: rotateY(180deg); background: #fff; font-size: clamp(30px, 10vw, 46px); line-height: 1; box-shadow: inset 0 0 0 3px var(--gold); }
+.mcard.done .mc-front { box-shadow: inset 0 0 0 4px var(--lime), 0 0 14px rgba(198, 255, 61, .55); }
+
+/* Hütchen */
+.cups-stage { --sw: 420ms; position: relative; height: 200px; border-radius: 22px; background: repeating-linear-gradient(180deg, #1f6a33 0 40px, #237a3a 40px 80px); overflow: hidden; }
+.cupw { position: absolute; bottom: 14px; width: 33.333%; height: 160px; transition: left var(--sw) cubic-bezier(.45, .05, .35, 1); }
+.cup-ball { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); }
+.cup-ball svg { display: block; }
+.cup { position: absolute; left: 50%; bottom: 0; width: 92px; margin-left: -46px; padding: 0; border: 0; background: none; transition: transform .35s cubic-bezier(.3, 1.4, .5, 1); }
+.cup svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, .35)); }
+.cup.up { transform: translateY(-74px); }
+.cup:not([disabled]) { animation: wobble 1.4s ease-in-out infinite; }
+
+/* Hochhalten */
+.jug-ball { position: absolute; left: 0; top: 0; width: 64px; height: 64px; will-change: transform; pointer-events: none; }
+.jug-ball svg { display: block; }
+.jug-grass { position: absolute; left: 0; right: 0; bottom: 0; height: 14px; background: #134b22; }
+
+/* Rechen-Elfer */
+.math-box { display: grid; gap: 14px; min-height: 230px; align-content: center; padding: 16px; border-radius: 22px; background: rgba(255, 255, 255, .06); border: 1px solid var(--line); }
+.math-q { margin: 0; text-align: center; font: 900 italic 52px/1 var(--f-display); color: var(--ink); }
+.math-q.small { font-size: 36px; }
+.math-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.math-o { min-height: 64px; padding: 0 4px; font-size: 30px; }
+.math-o.right { background: var(--lime); color: var(--lime-ink); }
+.math-o.wrong { background: rgba(255, 90, 82, .35); }
+
+/* Endgegner */
+.boss-area { background: repeating-linear-gradient(180deg, #1f6a33 0 50px, #237a3a 50px 100px); }
+.boss-lanes { position: absolute; inset: 0; pointer-events: none; }
+.boss-lanes i { position: absolute; top: 0; bottom: 0; left: 33.333%; width: 2px; background: rgba(255, 255, 255, .25); }
+.boss-lanes i + i { left: 66.666%; }
+.boss-me { position: absolute; bottom: 14px; left: 50%; width: 50px; margin-left: -25px; transition: left .08s linear; z-index: 2; pointer-events: none; }
+.boss-me svg { display: block; width: 50px; height: auto; }
+.boss-me.down { animation: shake .4s; filter: grayscale(.6); }
+.boss-row { position: absolute; left: 0; right: 0; top: 0; height: 0; will-change: transform; pointer-events: none; }
+.boss-def { position: absolute; top: -23px; width: 46px; margin-left: -23px; }
+.boss-def svg { display: block; width: 46px; height: 46px; }
+
 </style>
 <script src="firebase.js"></script>
 </head>
@@ -800,6 +934,7 @@ function defaultCfg(today) {
     yellowExpiry: 0,     // 0 = Gelbe verfallen nie; zwei offene Gelbe ergeben Rot
     extraMax: 3,         // höchstens so viele Extra-Tore pro Tag
     packEvery: 6,        // alle so viele Tore gibt es eine Sticker-Tüte
+    games: true,         // Minispiele auf „Heute“ (Spielzeit aus den Toren von gestern, ab 14 Uhr)
     agreement: '',       // Abmachung der Woche (ersetzt den Untertitel der Abmachungs-Aufgabe)
     noteMoney: { 1: 500, 2: 300, 3: 200, 4: 0, 5: 0, 6: 0 },   // Konto: Euro-Cent, die eine Note bringt (bei jeder Buchung änderbar)
     /* Die Gründe für ein Tor oder Kein Tor (Vorgabe des Trainers). Die Untertitel bleiben leer, die Kriterien legt er selbst fest. */
@@ -1193,8 +1328,64 @@ function coachAdvice(S, today) {
   return out;
 }
 
+/* ---------- Spielzeit für die Minispiele ----------
+   Jedes Tor von gestern = 1 Minute Minispiele heute, jedes Tor des Gegners von gestern = 1 Minute Bonusspiel heute.
+   Gespielt wird nur heute und erst ab PLAY_FROM_HOUR Uhr (nicht in der Schule). Was heute nicht verspielt wird, verfällt.
+   Rote Karte gestern: Die Tore des Tages zählen nicht, also auch keine Spielminuten dafür. Spielfrei oder Joker: keine Minuten.
+   Verbraucht wird in Sekunden und in cfg/play gemerkt: { d: Tag, r: Sekunden Minispiele, b: Sekunden Bonusspiel }. */
+const PLAY_FROM_HOUR = 14;
+const GAME_IDS = ['elfer', 'keeper', 'memory', 'cups', 'juggle', 'rechnen'];
+const BONUS_GAME = 'boss';
+function playBudget(S, today) {
+  const y = addDays(today, -1), e = evalDay(S, y);
+  const goals = e.off ? 0 : Math.max(0, e.gain - e.redMinus), rival = e.off ? 0 : Math.max(0, e.rival);
+  return { from: y, goals, rival, reg: goals * 60, bonus: rival * 60 };
+}
+/* Bestwerte der Spiele (best) liegen mit im selben Dokument und bleiben über die Tage erhalten. Beim Memory zählen wenige Züge. */
+const LOWER_BETTER = { memory: 1 };
+const betterRec = (id, a, b) => (LOWER_BETTER[id] ? a < b : a > b);
+function normBest(o) {
+  const out = {};
+  Object.keys(o || {}).forEach(k => { const v = Math.round(+o[k]); if (/^[a-z]{2,12}$/.test(k) && isFinite(v) && v >= 0) out[k] = v; });
+  return out;
+}
+const normPlay = p => ({ d: String((p && p.d) || ''), r: Math.max(0, Math.round(+(p && p.r)) || 0), b: Math.max(0, Math.round(+(p && p.b)) || 0), best: normBest(p && p.best) });
+/* Zwei Stände zusammenführen: am selben Tag bleibt Verbrauchtes verbraucht (das Größere gilt), sonst gilt der neuere Tag. Bestwerte: der bessere. */
+function mergePlay(a, b) {
+  const x = normPlay(a), y = normPlay(b);
+  const best = Object.assign({}, x.best);
+  Object.keys(y.best).forEach(k => { if (best[k] == null || betterRec(k, y.best[k], best[k])) best[k] = y.best[k]; });
+  if (x.d !== y.d) { const n = x.d > y.d ? x : y; return { d: n.d, r: n.r, b: n.b, best }; }
+  return { d: x.d, r: Math.max(x.r, y.r), b: Math.max(x.b, y.b), best };
+}
+/* Neuen Bestwert eintragen. Liefert true, wenn es einen alten gab und der neue besser ist. */
+function playRecord(S, id, v) {
+  const p = normPlay(S.play), old = p.best[id];
+  if (old != null && !betterRec(id, v, old)) return false;
+  p.best[id] = Math.max(0, Math.round(v)); S.play = p;
+  return old != null;
+}
+/* Stand für jetzt (now: Date). open = ab 14 Uhr; regLeft/bonusLeft = übrige Sekunden heute. */
+function playState(S, now) {
+  const today = fmtDate(now), bud = playBudget(S, today), p = normPlay(S.play);
+  const used = p.d === today ? p : { d: today, r: 0, b: 0 };
+  return {
+    today, open: now.getHours() >= PLAY_FROM_HOUR, from: PLAY_FROM_HOUR, goals: bud.goals, rival: bud.rival, reg: bud.reg, bonus: bud.bonus,
+    usedR: Math.min(used.r, bud.reg), usedB: Math.min(used.b, bud.bonus),
+    regLeft: Math.max(0, bud.reg - used.r), bonusLeft: Math.max(0, bud.bonus - used.b),
+  };
+}
+/* Verbrauch buchen (kind 'r' = Minispiele, 'b' = Bonusspiel). Liefert die neue Zahl verbrauchter Sekunden. */
+function playUse(S, today, kind, secs) {
+  const p = normPlay(S.play), cur = p.d === today ? p : { d: today, r: 0, b: 0, best: p.best };
+  cur[kind] = Math.max(0, cur[kind] + Math.max(0, secs));
+  S.play = cur;
+  return cur[kind];
+}
+const fmtMinSec = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + pad2(s % 60); };
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { fmtEUR, fmtPlain, parseMoney, kontoBalance, kontoList, genitive, STICKER_FACT, factOf, WD_SHORT, WD_LONG, MONTHS_SHORT, fmtDate, parseDate, addDays, dowOf, mondayOf, todayStr, daysBetween, isoWeek, defaultCfg, migrateCfg, normGoals, normProg, taskSub, goalReached, goalList, nextGoal, rewardMoney, LADDER, ladderText, RARITY, RAR_ORDER, RAR_WEIGHT, PTS_PER_TOR, STICKERS, STICKER_BY, rarOf, stickerPoints, stickerBonus, pickSticker, packsLeft, tasksOn, RED_DAY_FROM, redTakesDay, buildLedger, ledgerOf, touch, accountNow, evalDay, evalWeek, computeStats, milestones, coachAdvice };
+  module.exports = { fmtEUR, fmtPlain, parseMoney, kontoBalance, kontoList, genitive, STICKER_FACT, factOf, WD_SHORT, WD_LONG, MONTHS_SHORT, fmtDate, parseDate, addDays, dowOf, mondayOf, todayStr, daysBetween, isoWeek, defaultCfg, migrateCfg, normGoals, normProg, taskSub, goalReached, goalList, nextGoal, rewardMoney, LADDER, ladderText, RARITY, RAR_ORDER, RAR_WEIGHT, PTS_PER_TOR, STICKERS, STICKER_BY, rarOf, stickerPoints, stickerBonus, pickSticker, packsLeft, tasksOn, RED_DAY_FROM, redTakesDay, buildLedger, ledgerOf, touch, accountNow, evalDay, evalWeek, computeStats, milestones, coachAdvice, PLAY_FROM_HOUR, GAME_IDS, BONUS_GAME, playBudget, normPlay, mergePlay, playRecord, playState, playUse, fmtMinSec };
 }
 
 /* ============ Grafik: Ball, Pokal, Wappen, Karten, Icons, Angel-Szene ============ */
@@ -1716,6 +1907,7 @@ const FX = (function () {
 
 /* ============ Speicher: geteilte Datenbank der Seite (db) oder lokal (localStorage) ============
    Dokumente: cfg/main (Einstellungen) · cfg/progress (Feiern, Eingelöstes, Saisons) · days/<JJJJ-MM-TT> (ein Tag)
+   · cfg/play (Spielzeit der Minispiele heute, siehe playState in logic.js)
    · konto/<id> (eine Buchung auf dem Guthabenkonto; je Buchung ein Dokument, damit zwei Geräte sich nie überschreiben).
    Eigene Änderungen gehen sofort in den Speicher S und werden gebündelt, eines nach dem anderen, geschrieben.
    Das Echo der eigenen Schreibvorgänge wird erkannt und ignoriert, damit es keine Eingaben überschreibt. */
@@ -1730,6 +1922,7 @@ const isEmptyDay = d => !d || (!d.off && (!d.m || !Object.keys(d.m).length) && (
 function docBody(key) {
   if (key === 'cfg/main') return jclone(S.cfg);
   if (key === 'cfg/progress') return jclone(S.prog);
+  if (key === 'cfg/play') return S.play ? jclone(S.play) : null;
   if (key.indexOf('konto/') === 0) { const e = S.konto[key.slice(6)]; return e ? jclone(e) : null; }
   const d = S.days[key.slice(5)];
   return d && !isEmptyDay(d) ? jclone(d) : null;
@@ -1737,6 +1930,7 @@ function docBody(key) {
 function assignDoc(key, data) {
   if (key === 'cfg/main') { Store.migrated = !!(data && (data.v || 0) < 4); S.cfg = migrateCfg(data, U.today); }
   else if (key === 'cfg/progress') S.prog = normProg(data);
+  else if (key === 'cfg/play') S.play = data ? mergePlay(S.play, data) : S.play;      // Verbrauchtes bleibt verbraucht, auch wenn ein anderes Gerät weniger kennt
   else if (key.indexOf('konto/') === 0) { const id = key.slice(6); if (data) S.konto[id] = data; else delete S.konto[id]; }
   else { const ds = key.slice(5); if (data) S.days[ds] = data; else delete S.days[ds]; }
   markChanged();
@@ -1747,7 +1941,7 @@ const isEcho = (key, json) => (Store.recent[key] || []).indexOf(json) >= 0;
 /* ---- lokal ---- */
 function lsLoad() { try { const j = localStorage.getItem(LS_KEY); return j ? JSON.parse(j) : null; } catch (e) { return null; } }
 function lsSave() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify({ cfg: S.cfg, prog: S.prog, days: S.days, konto: S.konto })); return true; } catch (e) { return false; }
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ cfg: S.cfg, prog: S.prog, days: S.days, konto: S.konto, play: S.play || null })); return true; } catch (e) { return false; }
 }
 
 /* ---- schreiben ---- */
@@ -1835,7 +2029,7 @@ function initLocal(note) {
   Store.subs.forEach(u => { try { u(); } catch (e) { /* schon beendet */ } }); Store.subs = [];
   Store.mode = 'local';
   const d = lsLoad();
-  if (d) { Store.migrated = !!(d.cfg && (d.cfg.v || 0) < 4); S.cfg = migrateCfg(d.cfg, U.today); S.prog = normProg(d.prog); S.days = d.days || {}; S.konto = d.konto || {}; U.hasCfg = !!d.cfg; markChanged(); }
+  if (d) { Store.migrated = !!(d.cfg && (d.cfg.v || 0) < 4); S.cfg = migrateCfg(d.cfg, U.today); S.prog = normProg(d.prog); S.days = d.days || {}; S.konto = d.konto || {}; S.play = d.play || null; U.hasCfg = !!d.cfg; markChanged(); }
   else U.hasCfg = false;
   Store.lsOk = Store.noAccess && !U.hasCfg ? false : lsSave();         // ohne Zugriff und ohne eigenen Stand nichts anlegen: sonst käme beim nächsten Öffnen ein leeres Spiel statt der Erklärung
   if (note) toast(note, 'warn');
@@ -1865,6 +2059,7 @@ async function initStore() {
     Store.subs.push(db.doc('cfg/progress').onSnapshot(s => { redraw(remoteDoc('cfg/progress', s)); got.prog = true; step(); }, fail));
     Store.subs.push(db.collection('days').onSnapshot(s => { redraw(remoteDays(s)); got.days = true; step(); }, fail));
     Store.subs.push(db.collection('konto').onSnapshot(s => { redraw(remoteKonto(s)); got.konto = true; step(); }, fail));
+    Store.subs.push(db.doc('cfg/play').onSnapshot(s => { redraw(remoteDoc('cfg/play', s)); }, () => { /* Spielzeit: ohne Lesen bleibt der Stand dieses Geräts */ }));
   } catch (e) { return initLocal('Die Verbindung zum Speicher klappt gerade nicht. Der Stand liegt vorerst nur auf diesem Gerät.'); }
   Store.readyTimer = setTimeout(() => { if (!U.ready) ready(); }, 7000);
 }
@@ -1992,6 +2187,7 @@ async function initCloud() {
   Store.subs.push(db.doc('cfg/progress').onSnapshot(s => { redraw(remoteDoc('cfg/progress', s)); got.prog = true; step(); }, cloudFail));
   Store.subs.push(db.collection('days').onSnapshot(s => { redraw(remoteDays(s)); got.days = true; step(); }, cloudFail));
   Store.subs.push(db.collection('konto').onSnapshot(s => { redraw(remoteKonto(s)); got.konto = true; step(); }, cloudFail));
+  Store.subs.push(db.doc('cfg/play').onSnapshot(s => { redraw(remoteDoc('cfg/play', s)); }, cloudFail));
   Store.readyTimer = setTimeout(() => { if (!got.cfg && !Store.gate) cloudGate('offline'); }, 9000);
 }
 
@@ -2001,7 +2197,7 @@ const U = {
   weekOff: 0, fx: null, pop: false, editTask: null, last: Date.now(), celebQ: [], sheet: null, pin: '',
   bars: {}, fish: null, newSticker: null, muted: false, shots: [], ob: null, ex: null, kx: null, dayBanner: {},
 };
-let S = { cfg: defaultCfg(U.today), prog: normProg(), days: {}, konto: {} };
+let S = { cfg: defaultCfg(U.today), prog: normProg(), days: {}, konto: {}, play: null };
 let _st = null;
 const markChanged = () => { touch(S); _st = null; };
 const ST = () => _st || (_st = computeStats(S, U.today));
@@ -2249,8 +2445,33 @@ function viewToday(st) {
   else h += '<ul class="tasks">' + e.items.map(it => taskCard(it, ds, e.locked)).join('') + '</ul>';
   if (!e.off) h += extrasCard(e, ds, st);
   if (isToday && !e.off) h += nextGoalCard(st);
+  if (isToday && S.cfg.games !== false) h += gamesCard();
   h += installHint();
   return h;
+}
+/* Minispiele: Spielzeit aus den Toren von gestern (ab 14 Uhr), sechs Spiele und das Bonusspiel Endgegner. Die Spiele stehen in games.js. */
+function gamesCard() {
+  const p = playState(S, new Date()), free = U.unlocked;
+  const min = n => n + (n === 1 ? ' Minute' : ' Minuten');
+  const box = (cls, sec, total, big, small) => '<span class="pt-box ' + cls + (sec > 0 ? '' : ' empty') + '"><b>' + big + '</b><small>' + small + '</small>' +
+    (total > 0 ? '<span class="pt-bar" aria-hidden="true"><i style="width:' + Math.round(sec / total * 100) + '%"></i></span>' : '') + '</span>';
+  const left = s => (s % 60 ? fmtMinSec(s) : min(s / 60));
+  let note;
+  if (free) note = 'Trainer-Modus: Du kannst alle Spiele ohne Uhr ausprobieren.';
+  else if (!p.open) note = p.reg + p.bonus > 0 ? 'Die Spiele gehen heute ab <b>' + p.from + ' Uhr</b> los.' : 'Heute gibt es keine Spielzeit. Jedes Tor heute bringt dir morgen eine Minute.';
+  else if (p.regLeft + p.bonusLeft > 0) note = 'Viel Spaß! Die Uhr läuft nur, solange ein Spiel offen ist.';
+  else note = p.reg + p.bonus > 0 ? 'Die Spielzeit für heute ist verbraucht. Jedes Tor heute bringt dir morgen eine Minute.' : 'Heute gibt es keine Spielzeit. Jedes Tor heute bringt dir morgen eine Minute.';
+  const can = kind => free || (p.open && (kind === 'b' ? p.bonusLeft : p.regLeft) > 0);
+  const tile = id => {
+    const G = GAMES[id], ok = can(G.bonus ? 'b' : 'r');
+    return '<button class="gtile' + (G.bonus ? ' boss' : '') + (ok ? '' : ' off') + '" data-act="game-open" data-game="' + id + '"' + (ok ? '' : ' aria-disabled="true"') + '><span class="gt-art" aria-hidden="true">' + G.art() + '</span><b>' + G.name + '</b><small>' + G.sub + '</small>' + (ok ? '' : '<span class="gt-lock" aria-hidden="true">' + IC.lock + '</span>') + '</button>';
+  };
+  return '<div class="sec-h"><h2>Minispiele</h2><span class="hint">ab ' + p.from + ' Uhr</span></div><section class="card games" aria-label="Minispiele">' +
+    '<div class="play-time">' +
+    box('reg', p.regLeft, p.reg, p.reg ? (p.regLeft === p.reg ? min(p.goals) : 'Noch ' + left(p.regLeft)) : '0 Minuten', 'Minispiele für ' + tore(p.goals) + ' gestern') +
+    box('bon', p.bonusLeft, p.bonus, p.bonus ? (p.bonusLeft === p.bonus ? min(p.rival) : 'Noch ' + left(p.bonusLeft)) : '0 Minuten', 'Endgegner für ' + tore(p.rival) + ' des Gegners') +
+    '</div><p class="hint pt-note">' + note + '</p>' +
+    '<div class="gtiles">' + GAME_IDS.map(tile).join('') + '</div>' + tile(BONUS_GAME) + '</section>';
 }
 /* Auf dem iPhone, solange die Seite noch in Safari läuft: wie sie auf den Home-Bildschirm kommt. */
 function installHint() {
@@ -2491,6 +2712,7 @@ function viewCoach(st) {
 
   h += '<section class="card coach-sec"><h2>Ablauf und Ton</h2>' +
     switchRow('shoot-mode', c.shootMode !== false, esc(c.name) + ' schießt jedes Tor selbst', 'Du bestätigst, er tippt auf den Ball. Aus: Tore zählen sofort mit Effekt.') +
+    switchRow('games-toggle', c.games !== false, 'Minispiele auf „Heute“', 'Jedes Tor von gestern = 1 Minute Minispiele, jedes Tor des Gegners = 1 Minute Endgegner. Nur am Tag danach, ab ' + PLAY_FROM_HOUR + ' Uhr. Bei Rot keine Minuten für die Tore des Tages. Im Trainer-Modus laufen die Spiele ohne Uhr.') +
     switchRow('sound', !U.muted, 'Ton auf diesem Gerät', 'Torjubel, Netz und Publikum. Auf dem iPhone: Seitenschalter auf laut stellen.') +
     (c.pin ? '<div class="row-btns"><button class="btn btn-ghost btn-sm" data-act="pin-set">Code ändern</button><button class="btn btn-ghost btn-sm" data-act="pin-clear">Code entfernen</button></div>'
       : '<div class="warn-box"><span><b>Kein Trainer-Code gesetzt.</b> Dann kann ' + esc(c.name) + ' selbst Tore vergeben.</span><button class="btn btn-lime btn-sm" data-act="pin-set">Code festlegen</button></div>') + '</section>';
@@ -2559,7 +2781,9 @@ function openSheet(html, cls) {
 const setSheet = html => { const s = $('.sheet'); if (s) s.innerHTML = html; };
 function closeSheet() {
   const l = $('#layer'); if (l) l.innerHTML = '';
+  const was = U.sheet;
   U.sheet = null; U.ob = null; U.ex = null; U.kx = null; document.body.classList.remove('noscroll');
+  if (was === 'sheet-game') gameClosed();
 }
 ACT['sheet-close'] = () => { if (U.sheet === 'onboard') return; closeSheet(); };
 function confirmSheet(o, fn) {
@@ -3020,6 +3244,7 @@ function rulesHTML() {
     '<h3>Minus</h3><p>Das Minus von Karten wird bei den Zielen und beim großen Fang abgezogen. In der Übersicht siehst du immer alle deine Tore. Bei den Erfolgen steht, was davon abgeht und was für die Ziele zählt.</p>' +
     '<h3>Ziele</h3><p>Alle deine Tore zählen zusammen, abzüglich Minus. Bei den Erfolgen siehst du, was du bei welchem Stand bekommst und wie viele Tore noch fehlen. Beim letzten Ziel ist der große Fang an Land. Eine Belohnung, die du schon eingelöst hast, bleibt deine.</p>' +
     '<h3>Sticker</h3><p>Alle ' + c.packEvery + ' Tore gibt es eine Sticker-Tüte. Normale Sticker zählen 1 Punkt, seltene 2 und ultraseltene 5. Je ' + PTS_PER_TOR + ' Punkte ergeben 1 Tor.</p>' +
+    '<h3>Minispiele</h3><p>Für jedes Tor bekommst du am nächsten Tag <b>1 Minute</b> für die Minispiele. Für jedes Tor des Gegners gibt es 1 Minute für das Bonusspiel <b>Endgegner</b>. Gespielt wird ab ' + PLAY_FROM_HOUR + ' Uhr. Was du an dem Tag nicht verspielst, verfällt. Bei Rot gibt es für die Tore des Tages keine Minuten.</p>' +
     '<h3>Dein Konto</h3><p>Für gute Noten wird dir Geld gutgeschrieben. Abgezogen wird nur, wenn du dir etwas wünschst oder Geld ausgezahlt haben willst, mit deinem Ja. Nie als Strafe. Du siehst jederzeit, wie viel dir zusteht.</p>' +
     '<p>Wir haben dich lieb, egal wie das Spiel ausgeht.</p></div>' +
     '<button class="btn btn-ghost btn-block" data-act="sheet-close">Schließen</button>';
@@ -3142,6 +3367,7 @@ ACT.step = el => {
   }
   o[key] = v; markChanged(); persist('cfg/main', 400); render();
 };
+ACT['games-toggle'] = () => { S.cfg.games = S.cfg.games === false; markChanged(); persist('cfg/main'); render(); };
 ACT['shoot-mode'] = () => { S.cfg.shootMode = S.cfg.shootMode === false; if (S.cfg.shootMode === false) U.shots = []; markChanged(); persist('cfg/main'); render(); };
 ACT.sound = () => {
   U.muted = !U.muted; Snd.setMuted(U.muted);
@@ -3229,6 +3455,9 @@ function tick() {
     U.today = t; if (wasToday) U.date = t;
     markChanged(); if (U.ready) render();
   }
+  const po = new Date().getHours() >= PLAY_FROM_HOUR;                  // um 14 Uhr gehen die Minispiele auf: Heute neu zeichnen
+  if (U.playOpen !== undefined && po !== U.playOpen && U.ready && !U.sheet) render();
+  U.playOpen = po;
   if (U.unlocked && Date.now() - U.last > 180000) { lockNow(); toast('Trainer-Modus wurde gesperrt.'); }
 }
 function afterLoad() {
@@ -3268,7 +3497,7 @@ function bindEvents() {
   };
   document.addEventListener('pointerup', endHold); document.addEventListener('pointercancel', endHold);
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) U.hiddenAt = Date.now();
+    if (document.hidden) { U.hiddenAt = Date.now(); gamePause(); }
     else { if (U.unlocked && U.hiddenAt && Date.now() - U.hiddenAt > 60000) lockNow(); tick(); }
   });
 }
@@ -3312,8 +3541,510 @@ function boot() {
   if (window.__PWA__ && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { /* ohne Offline-Hülle geht es auch */ });
   initStore();
 }
-boot();
 
+/* ============ Minispiele ============
+   Sechs Minispiele und ein Bonusspiel (Endgegner). Spielzeit: jedes Tor von gestern = 1 Minute Minispiele,
+   jedes Tor des Gegners von gestern = 1 Minute Endgegner; nur heute und erst ab 14 Uhr (Regeln: playState in logic.js).
+   Die Uhr läuft, solange das Spielfenster offen und die App sichtbar ist. Verbrauch und Bestwerte stehen in cfg/play.
+   Im Trainer-Modus lassen sich alle Spiele ohne Uhr ausprobieren. Kein Spiel bringt Tore. */
+let gameTimers = [];
+const gLater = (fn, ms) => { const t = setTimeout(fn, ms); gameTimers.push(t); return t; };
+function gameStop() {
+  gameTimers.forEach(clearTimeout); gameTimers = [];
+  if (U.game && U.game.raf) cancelAnimationFrame(U.game.raf);
+  U.game = null; window.__game = null;
+}
+const gameAlive = g => U.game === g && U.sheet === 'sheet-game';
+const rnd = n => Math.floor(Math.random() * n);
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
+
+const GAMES = {
+  elfer: { name: 'Elfmeter', sub: 'Schieß am Torwart vorbei', art: () => '<span class="gt-elf">' + goalSVG(54) + '<i>' + ballSVG(18) + '</i></span>' },
+  keeper: { name: 'Torwart', sub: 'Halte die Bälle', art: () => '<span class="gt-keep">🧤' + ballSVG(22) + '</span>' },
+  memory: { name: 'Memory', sub: 'Paare finden', art: () => '<span class="gt-mem"><i>⚽</i><i>⚽</i></span>' },
+  cups: { name: 'Hütchen', sub: 'Wo ist der Ball?', art: () => '<span class="gt-cups">' + coneSVG(22) + '<i>' + ballSVG(18) + '</i>' + coneSVG(22) + '</span>' },
+  juggle: { name: 'Hochhalten', sub: 'Lass ihn nicht fallen', art: () => '<span class="gt-jug">' + ballSVG(26) + '<i>👟</i></span>' },
+  rechnen: { name: 'Rechen-Elfer', sub: 'Rechnen = Tore', art: () => '<span class="gt-math">7×8</span>' },
+  boss: { name: 'Endgegner', sub: 'Bonusspiel: wird immer schwerer', bonus: true, art: () => '<span class="gt-boss">' + monsterSVG('meh', 40) + '</span>' },
+};
+const kindOf = id => (GAMES[id] && GAMES[id].bonus ? 'b' : 'r');
+const gameBest = id => normPlay(S.play).best[id];
+function gameRecord(id, v) {
+  const rec = playRecord(S, id, v);
+  if (!U.readonly) persist('cfg/play');
+  return rec;
+}
+
+/* ---------- Spielzeit: Uhr ---------- */
+const Play = { kind: null, free: false, last: 0, acc: 0, unsaved: 0, timer: 0 };
+const playNow = () => playState(S, new Date());
+const leftOf = (p, kind) => (kind === 'b' ? p.bonusLeft : p.regLeft);
+function clockStart(kind, free) {
+  clockStop();
+  Object.assign(Play, { kind, free, last: performance.now(), acc: 0, unsaved: 0 });
+  Play.timer = setInterval(clockTick, 1000);
+  paintClock();
+}
+function clockTick() {
+  if (!Play.kind) return;
+  const now = performance.now(), dt = Math.min(2000, now - Play.last) / 1000; Play.last = now;
+  if (document.hidden || Play.free) { paintClock(); return; }
+  Play.acc += dt;
+  const whole = Math.floor(Play.acc);
+  if (whole > 0) {
+    Play.acc -= whole; Play.unsaved += whole;
+    playUse(S, todayStr(), Play.kind, whole);
+    if (Play.unsaved >= 10) { Play.unsaved = 0; persist('cfg/play'); }
+  }
+  paintClock();
+  const p = playNow();
+  if (!p.open || leftOf(p, Play.kind) <= 0) timeUp();
+}
+function clockStop() {
+  clearInterval(Play.timer); Play.timer = 0;
+  if (Play.kind && !Play.free && Play.unsaved > 0) persist('cfg/play');
+  Play.kind = null; Play.unsaved = 0; Play.acc = 0;
+}
+function paintClock() {
+  const el = $('#gclock'); if (!el || !Play.kind) return;
+  if (Play.free) { el.innerHTML = '<b>Trainer-Test</b>'; return; }
+  const left = leftOf(playNow(), Play.kind);
+  el.innerHTML = '⏱ <b>' + fmtMinSec(left) + '</b>';
+  el.classList.toggle('low', left <= 30);
+}
+function timeUp() {
+  const kind = Play.kind; clockStop(); gameStop();
+  const p = playNow(), other = kind === 'b' ? p.regLeft : p.bonusLeft;
+  Snd.soft(); Hap.go([40, 60, 40]);
+  setSheet(gameHead('Abpfiff!') + '<div class="g-over"><span class="g-whistle">' + IC.whistle + '</span><p><b>Die Spielzeit ist um.</b></p>' +
+    '<p class="hint">' + (!p.open ? 'Morgen ab ' + PLAY_FROM_HOUR + ' Uhr geht es weiter.' : other > 0 ? 'Du hast noch ' + fmtMinSec(other) + ' für ' + (kind === 'b' ? 'die Minispiele' : 'den Endgegner') + '.' : 'Jedes Tor heute bringt dir morgen eine Minute.') + '</p></div>' +
+    '<button class="btn btn-lime btn-block" data-act="sheet-close">Fertig</button>');
+}
+/* Darf das Spiel jetzt starten? Im Trainer-Modus immer (ohne Uhr). */
+function playGate(id) {
+  if (U.unlocked) return { ok: true, free: true };
+  const p = playNow();
+  if (!p.open) return { ok: false, why: 'Die Spiele gehen heute ab ' + PLAY_FROM_HOUR + ' Uhr los.' };
+  if (leftOf(p, kindOf(id)) <= 0) return { ok: false, why: kindOf(id) === 'b' ? 'Heute keine Zeit für den Endgegner.' : 'Heute keine Spielzeit mehr.' };
+  return { ok: true, free: false };
+}
+
+/* ---------- Fenster ---------- */
+const gameHead = title => '<div class="g-head"><h2>' + esc(title) + '</h2><span class="g-clock" id="gclock" aria-live="off"></span><button class="g-x" data-act="sheet-close" aria-label="Spiel schließen">' + IC.cross + '</button></div>';
+const gameShell = id => gameHead(GAMES[id].name) + '<div class="g-body" id="gbody"></div><div class="g-foot" id="gfoot"></div>';
+const setFoot = h => { const f = $('#gfoot'); if (f) f.innerHTML = h; };
+const doneFoot = (msg, again) => '<p class="g-msg">' + msg + '</p><div class="row-btns"><button class="btn btn-lime" data-act="' + again + '">Nochmal!</button><button class="btn btn-ghost" data-act="sheet-close">Fertig</button></div>';
+const START = { elfer: elferStart, keeper: keeperStart, memory: memStart, cups: cupsStart, juggle: juggleStart, rechnen: mathStart, boss: bossStart };
+
+ACT['game-open'] = el => {
+  const id = el.dataset.game;
+  if (!GAMES[id]) return;
+  const gate = playGate(id);
+  if (!gate.ok) { toast(gate.why); return; }
+  gameStop();
+  openSheet(gameShell(id), 'sheet-game');
+  clockStart(kindOf(id), gate.free);
+  START[id]();
+};
+/* Aus closeSheet: Fenster zu = Spiel und Uhr aus, Stand auf Heute neu zeichnen. */
+function gameClosed() { clockStop(); gameStop(); setTimeout(render, 0); }
+/* App im Hintergrund: laufende Echtzeit-Spiele enden (sonst liefe es unsichtbar weiter). Die Uhr zählt dann nicht. */
+function gamePause() { const g = U.game; if (g && g.phase === 'play' && g.end) g.end(); }
+/* Nochmal: nur, wenn noch Zeit da ist. */
+function again(id) {
+  const gate = playGate(id);
+  if (!gate.ok && !Play.free) { timeUp(); return; }
+  gameStop(); START[id]();
+}
+
+/* ---------- 1. Elfmeter: Der Torwart läuft hin und her, tippe ins Tor, wohin du schießt ---------- */
+const ELF_SHOTS = 10;
+function elferStart() {
+  const g = U.game = { id: 'elfer', phase: 'aim', shot: 0, goals: 0, t0: performance.now(), raf: 0, kx: .5, speed: 1 };
+  window.__game = g;
+  $('#gbody').innerHTML = '<div class="elf-score"><span>Tore <b id="elfG">0</b></span><span>Schuss <b id="elfS">1</b>/' + ELF_SHOTS + '</span></div>' +
+    '<div class="elf-stage" id="elfStage"><div class="elf-goal" id="elfGoal" data-act="elf-shoot"><div class="elf-net"></div><div class="elf-keeper" id="elfK">' + monsterSVG('meh', 58) + '<i class="glove l">🧤</i><i class="glove r">🧤</i></div></div>' +
+    '<div class="elf-spot"></div><div class="elf-ball" id="elfBall">' + ballSVG(34) + '</div></div>';
+  const best = gameBest('elfer');
+  setFoot('<p class="g-msg">Tippe ins Tor, wohin du schießen willst.' + (best != null ? ' Rekord: ' + best + ' Tore.' : '') + '</p>');
+  const loop = now => {
+    if (!gameAlive(g)) return;
+    const t = (now - g.t0) / 1000;
+    g.kx = .5 + .36 * Math.sin(t * (1.6 + g.goals * .22));
+    const k = $('#elfK'); if (k) k.style.left = (g.kx * 100).toFixed(2) + '%';
+    g.raf = requestAnimationFrame(loop);
+  };
+  g.raf = requestAnimationFrame(loop);
+}
+ACT['elf-shoot'] = (el, ev) => {
+  const g = U.game; if (!g || g.id !== 'elfer' || g.phase !== 'aim') return;
+  const goal = $('#elfGoal'), ball = $('#elfBall'); if (!goal || !ball) return;
+  const r = goal.getBoundingClientRect(), br = ball.getBoundingClientRect();
+  const x = ev && ev.clientX != null && ev.clientX > 0 ? ev.clientX : r.left + r.width * Math.random();
+  const y = ev && ev.clientY != null && ev.clientY > 0 ? ev.clientY : r.top + r.height * .5;
+  const fx = clamp((x - r.left) / r.width, .04, .96);
+  g.phase = 'fly'; Snd.kick();
+  ball.style.transform = 'translate(' + (x - (br.left + br.width / 2)).toFixed(1) + 'px,' + (y - (br.top + br.height / 2)).toFixed(1) + 'px) scale(.62)';
+  gLater(() => {
+    if (!gameAlive(g)) return;
+    const saved = Math.abs(g.kx - fx) < .15;
+    g.shot++;
+    const kp = $('#elfK');
+    if (saved) { Snd.soft(); goal.classList.add('saved'); if (kp) kp.style.transform = 'translateY(' + (-Math.max(0, r.bottom - y - 46)).toFixed(0) + 'px)'; }   // Torwart springt hoch zum Ball
+    else { g.goals++; Snd.goal(); Hap.go(30); goal.classList.add('scored'); FX.pop(x, y, ['⚽', '🔥']); }
+    $('#elfG').textContent = g.goals;
+    setFoot('<p class="g-msg"><b>' + (saved ? 'Gehalten!' : 'Tor!') + '</b></p>');
+    gLater(() => {
+      if (!gameAlive(g)) return;
+      goal.classList.remove('saved', 'scored'); ball.style.transform = ''; if (kp) kp.style.transform = '';
+      if (g.shot >= ELF_SHOTS) { elferDone(g); return; }
+      $('#elfS').textContent = g.shot + 1; g.phase = 'aim';
+      setFoot('<p class="g-msg">Nächster Schuss! Tippe ins Tor.</p>');
+    }, 850);
+  }, 420);
+};
+function elferDone(g) {
+  g.phase = 'over'; cancelAnimationFrame(g.raf);
+  const rec = gameRecord('elfer', g.goals);
+  if (g.goals >= 5) { Snd.fanfare(); FX.party(['⚽', '🏆']); }
+  setFoot(doneFoot('<b>' + g.goals + ' von ' + ELF_SHOTS + ' verwandelt!</b>' + (rec ? ' Neuer Rekord!' : ''), 'elf-again'));
+}
+ACT['elf-again'] = () => again('elfer');
+
+/* ---------- 2. Torwart: 30 Sekunden Bälle antippen, bevor sie über die Linie sind ---------- */
+const KEEP_SECS = 30;
+function keeperStart() {
+  const g = U.game = { id: 'keeper', phase: 'ready', saves: 0, conceded: 0, items: [], raf: 0 };
+  window.__game = g;
+  const best = gameBest('keeper');
+  $('#gbody').innerHTML = '<div class="catch-top"><span class="ct-score">🧤 <b id="kpS">0</b> gehalten</span><span class="ct-time"><i id="kpT" style="width:100%"></i></span><span class="ct-score miss">' + ballSVG(16) + ' <b id="kpC">0</b></span></div>' +
+    '<div class="catch-area keep-area" id="karea"><div class="catch-start"><p>Die Bälle fliegen aufs Tor.<br>Tippe sie an, bevor sie unten ankommen!</p>' + (best != null ? '<p class="hint">Dein Rekord: ' + best + '</p>' : '') + '<button class="btn btn-lime" data-act="keep-go">Anpfiff!</button></div><div class="keep-line"></div></div>';
+  setFoot('<p class="g-msg">Du bist der Torwart.</p>');
+  $('#karea').addEventListener('pointerdown', ev => {
+    const el = ev.target.closest('.fall'); if (!el || U.game !== g || g.phase !== 'play') return;
+    ev.preventDefault();
+    const it = g.items.find(x => x.el === el); if (!it || it.hit) return;
+    it.hit = true; g.saves++; el.classList.add('hit'); $('#kpS').textContent = g.saves;
+    Snd.stamp(); const r = el.getBoundingClientRect(); FX.pop(r.left + r.width / 2, r.top + r.height / 2, ['🧤']);
+    gLater(() => el.remove(), 240);
+  });
+}
+ACT['keep-go'] = () => {
+  const g = U.game; if (!g || g.id !== 'keeper' || g.phase !== 'ready') return;
+  const st = $('#karea .catch-start'); if (st) st.remove();
+  g.phase = 'play'; g.t0 = performance.now(); g.last = g.t0; g.spawnIn = 0; g.end = keeperEnd;
+  const loop = now => {
+    if (!gameAlive(g) || g.phase !== 'play') return;
+    const dt = Math.min(64, now - g.last) / 1000, el = (now - g.t0) / 1000; g.last = now;
+    const area = $('#karea'); if (!area) return;
+    const H = area.clientHeight, W = area.clientWidth;
+    g.spawnIn -= dt;
+    if (g.spawnIn <= 0) {
+      const size = 44 + rnd(12), n = document.createElement('button');
+      n.className = 'fall'; n.type = 'button'; n.setAttribute('aria-label', 'Ball'); n.innerHTML = ballSVG(size);
+      n.style.left = (Math.random() * Math.max(10, W - size - 8) + 4).toFixed(0) + 'px'; n.style.transform = 'translateY(-60px)';
+      area.appendChild(n);
+      g.items.push({ el: n, y: -60, v: H * .34 + el * H * .022 + Math.random() * 50, hit: false });
+      g.spawnIn = Math.max(.38, .9 - el * .018);
+    }
+    g.items = g.items.filter(it => {
+      if (it.hit) return it.el.isConnected;
+      it.y += it.v * dt; it.el.style.transform = 'translateY(' + it.y.toFixed(1) + 'px)';
+      if (it.y > H - 40) { it.el.remove(); g.conceded++; const c = $('#kpC'); if (c) c.textContent = g.conceded; Snd.soft(); return false; }
+      return true;
+    });
+    const bar = $('#kpT'); if (bar) bar.style.width = (Math.max(0, 1 - el / KEEP_SECS) * 100).toFixed(1) + '%';
+    if (el >= KEEP_SECS) { keeperEnd(); return; }
+    g.raf = requestAnimationFrame(loop);
+  };
+  g.raf = requestAnimationFrame(loop);
+};
+function keeperEnd() {
+  const g = U.game; if (!g || g.id !== 'keeper' || g.phase !== 'play') return;
+  g.phase = 'over'; cancelAnimationFrame(g.raf);
+  $$('#karea .fall').forEach(n => n.remove()); g.items = [];
+  const rec = gameRecord('keeper', g.saves);
+  if (g.saves > g.conceded) { Snd.fanfare(); FX.party(['🧤', '⚽']); }
+  setFoot(doneFoot('<b>' + g.saves + ' gehalten, ' + g.conceded + ' durch.</b>' + (rec ? ' Neuer Rekord!' : ''), 'keep-again'));
+}
+ACT['keep-again'] = () => again('keeper');
+
+/* ---------- 3. Memory: 8 Paare ---------- */
+const MEM_POOL = ['⚽', '🥅', '🏆', '👟', '🧤', '🎽', '🥇', '📣', '🏟️', '🚩', '🧢', '🦁', '🐯', '🦅', '🔥', '⭐'];
+function memStart() {
+  const pick = shuffle(MEM_POOL.slice()).slice(0, 8);
+  const g = U.game = { id: 'memory', cards: shuffle(pick.concat(pick)).map(v => ({ v, open: false, done: false })), first: -1, lock: false, moves: 0, found: 0 };
+  window.__game = g;
+  $('#gbody').innerHTML = '<div class="mem-grid">' + g.cards.map((c, i) => '<button class="mcard" data-act="mem-flip" data-i="' + i + '" aria-label="Karte ' + (i + 1) + '"><span class="mc-in"><span class="mc-back">' + ballSVG(30) + '</span><span class="mc-front">' + c.v + '</span></span></button>').join('') + '</div>';
+  const best = gameBest('memory');
+  setFoot('<p class="g-msg">Finde die Paare! Tippe zwei Karten an.' + (best != null ? ' Rekord: ' + best + ' Züge.' : '') + '</p>');
+}
+function memPaint(i) {
+  const g = U.game, c = g.cards[i], el = $('.mcard[data-i="' + i + '"]'); if (!el) return;
+  el.classList.toggle('open', c.open || c.done); el.classList.toggle('done', c.done);
+}
+ACT['mem-flip'] = el => {
+  const g = U.game; if (!g || g.id !== 'memory' || g.lock) return;
+  const i = +el.dataset.i, c = g.cards[i]; if (!c || c.open || c.done) return;
+  c.open = true; memPaint(i); Snd.tap();
+  if (g.first < 0) { g.first = i; return; }
+  const j = g.first, d = g.cards[j]; g.first = -1; g.moves++;
+  if (d.v === c.v) {
+    c.done = d.done = true; g.found++;
+    gLater(() => { if (!gameAlive(g)) return; memPaint(i); memPaint(j); Snd.stamp(); if (g.found === g.cards.length / 2) memDone(g); }, 250);
+  } else {
+    g.lock = true;
+    gLater(() => { if (!gameAlive(g)) return; c.open = d.open = false; memPaint(i); memPaint(j); g.lock = false; }, 900);
+  }
+};
+function memDone(g) {
+  g.over = true;
+  const rec = gameRecord('memory', g.moves);
+  Snd.fanfare(); FX.party(['⚽', '🏆']); Hap.go([30, 40, 30]);
+  setFoot(doneFoot('<b>Alle Paare gefunden!</b> ' + g.moves + ' Züge.' + (rec ? ' Neuer Rekord!' : ''), 'mem-again'));
+}
+ACT['mem-again'] = () => again('memory');
+
+/* ---------- 4. Hütchen: Der Ball liegt unter einem von drei Hütchen, die Hütchen werden vertauscht ---------- */
+function coneSVG(w) {
+  return '<svg class="cone" viewBox="0 0 100 96" width="' + w + '" height="' + f1(w * .96) + '" aria-hidden="true" focusable="false"><path d="M20 86 40 10Q50 4 60 10L80 86z" fill="#ff8a1f" stroke="#a64b00" stroke-width="3.5" stroke-linejoin="round"/>' +
+    '<path d="M31 46h38M26 66h48" stroke="#fff" stroke-width="8" stroke-linecap="round" opacity=".9"/><rect x="8" y="84" width="84" height="9" rx="4" fill="#e06d00" stroke="#a64b00" stroke-width="3"/></svg>';
+}
+function cupsStart(keep) {
+  const prev = keep && U.game && U.game.id === 'cups' ? U.game.streak : 0;
+  const g = U.game = { id: 'cups', slots: [0, 1, 2], ball: rnd(3), phase: 'show', streak: prev };
+  window.__game = g;
+  $('#gbody').innerHTML = '<div class="cups-stage">' + [0, 1, 2].map(c => '<div class="cupw" data-cup="' + c + '" style="left:' + (c * 33.333) + '%">' + (c === g.ball ? '<span class="cup-ball">' + ballSVG(44) + '</span>' : '') +
+    '<button class="cup up" data-act="cup-pick" data-cup="' + c + '" aria-label="Hütchen ' + (c + 1) + '" disabled>' + coneSVG(92) + '</button></div>').join('') + '</div>';
+  setFoot('<p class="g-msg">' + (g.streak ? '<b>' + g.streak + '× gefunden!</b> ' : '') + 'Schau genau hin: Hier ist der Ball!</p>');
+  gLater(() => { if (!gameAlive(g)) return; $$('.cup').forEach(c => c.classList.remove('up')); Snd.soft(); }, 1300);
+  gLater(() => { if (gameAlive(g)) cupsShuffle(g); }, 1800);
+}
+function cupsShuffle(g) {
+  g.phase = 'shuffle';
+  setFoot('<p class="g-msg">Die Hütchen werden gemischt …</p>');
+  const n = 4 + Math.min(g.streak, 8), ms = Math.max(200, 440 - g.streak * 30);
+  const stage = $('.cups-stage'); if (stage) stage.style.setProperty('--sw', ms + 'ms');
+  let k = 0;
+  const step = () => {
+    if (!gameAlive(g)) return;
+    if (k++ >= n) { g.phase = 'pick'; $$('.cup').forEach(c => { c.disabled = false; }); setFoot('<p class="g-msg"><b>Wo ist der Ball?</b> Tippe auf ein Hütchen.</p>'); return; }
+    const a = rnd(3), b = (a + 1 + rnd(2)) % 3, ca = g.slots.indexOf(a), cb = g.slots.indexOf(b);
+    g.slots[ca] = b; g.slots[cb] = a;
+    $$('.cupw').forEach(w => { w.style.left = (g.slots[+w.dataset.cup] * 33.333) + '%'; });
+    Snd.tap(); gLater(step, ms + 50);
+  };
+  step();
+}
+ACT['cup-pick'] = el => {
+  const g = U.game; if (!g || g.id !== 'cups' || g.phase !== 'pick') return;
+  const c = +el.dataset.cup; g.phase = 'reveal';
+  $$('.cup').forEach(x => { x.disabled = true; });
+  el.classList.add('up');
+  if (c === g.ball) {
+    g.streak++;
+    const rec = gameRecord('cups', g.streak);
+    Snd.goal(); Hap.go([20, 30, 20]);
+    const r = el.getBoundingClientRect(); FX.pop(r.left + r.width / 2, r.top + r.height, ['⚽', '⭐']);
+    setFoot(doneFoot('<b>Gefunden!</b> ' + (g.streak > 1 ? g.streak + '-mal hintereinander.' : 'Gut aufgepasst!') + (rec ? ' Neuer Rekord!' : ''), 'cups-again'));
+  } else {
+    Snd.soft(); g.streak = 0;
+    gLater(() => { if (!gameAlive(g)) return; const right = $('.cup[data-cup="' + g.ball + '"]'); if (right) right.classList.add('up'); }, 500);
+    setFoot(doneFoot('<b>Knapp daneben!</b> Hier war er. Nochmal?', 'cups-again'));
+  }
+};
+ACT['cups-again'] = () => {
+  const gate = playGate('cups'); if (!gate.ok && !Play.free) { timeUp(); return; }
+  gameTimers.forEach(clearTimeout); gameTimers = []; cupsStart(true);
+};
+
+/* ---------- 5. Hochhalten: Ball antippen, damit er nicht auf den Boden fällt ---------- */
+function juggleStart() {
+  const g = U.game = { id: 'juggle', phase: 'ready', kicks: 0, raf: 0 };
+  window.__game = g;
+  const best = gameBest('juggle');
+  $('#gbody').innerHTML = '<div class="catch-top"><span class="ct-score">👟 <b id="jgK">0</b> mal hochgehalten</span></div>' +
+    '<div class="jug-area" id="jarea"><div class="jug-ball" id="jball">' + ballSVG(64) + '</div><div class="jug-grass"></div>' +
+    '<div class="catch-start"><p>Tippe den Ball an, damit er oben bleibt!</p>' + (best != null ? '<p class="hint">Dein Rekord: ' + best + '</p>' : '') + '<button class="btn btn-lime" data-act="jug-go">Los!</button></div></div>';
+  setFoot('<p class="g-msg">Wie oft schaffst du es?</p>');
+  $('#jarea').addEventListener('pointerdown', ev => {
+    if (U.game !== g || g.phase !== 'play') return;
+    const area = $('#jarea'), r = area.getBoundingClientRect();
+    const px = ev.clientX - r.left, py = ev.clientY - r.top, R = 32;
+    if (Math.hypot(px - g.x, py - g.y) > R * 1.9 || g.vy < -g.H * .4) return;      // nur den Ball treffen, nicht in der Luft nachtreten
+    ev.preventDefault();
+    g.kicks++; $('#jgK').textContent = g.kicks;
+    g.vy = -g.H * (1.25 + Math.random() * .15);
+    g.vx = (g.x - px) * 4.5 + (Math.random() - .5) * 90;
+    g.grav = g.H * (1.9 + Math.min(g.kicks, 40) * .03);
+    Snd.kick(); Hap.go(15);
+  });
+}
+ACT['jug-go'] = () => {
+  const g = U.game; if (!g || g.id !== 'juggle' || g.phase !== 'ready') return;
+  const st = $('#jarea .catch-start'); if (st) st.remove();
+  const area = $('#jarea'); g.W = area.clientWidth; g.H = area.clientHeight;
+  Object.assign(g, { phase: 'play', x: g.W / 2, y: g.H * .3, vx: 0, vy: -g.H * .5, grav: g.H * 1.9, last: performance.now(), end: () => juggleEnd(g) });
+  const ball = $('#jball');
+  const loop = now => {
+    if (!gameAlive(g) || g.phase !== 'play') return;
+    const dt = Math.min(40, now - g.last) / 1000; g.last = now;
+    g.vy += g.grav * dt; g.x += g.vx * dt; g.y += g.vy * dt;
+    if (g.x < 32) { g.x = 32; g.vx = Math.abs(g.vx) * .8; }
+    if (g.x > g.W - 32) { g.x = g.W - 32; g.vx = -Math.abs(g.vx) * .8; }
+    if (g.y < 32) { g.y = 32; g.vy = Math.abs(g.vy) * .3; }
+    if (ball) ball.style.transform = 'translate(' + (g.x - 32).toFixed(1) + 'px,' + (g.y - 32).toFixed(1) + 'px) rotate(' + (g.x * 2).toFixed(0) + 'deg)';
+    if (g.y > g.H - 46) { juggleEnd(g); return; }
+    g.raf = requestAnimationFrame(loop);
+  };
+  g.raf = requestAnimationFrame(loop);
+};
+function juggleEnd(g) {
+  if (g.phase !== 'play') return;
+  g.phase = 'over'; cancelAnimationFrame(g.raf); Snd.soft();
+  const rec = gameRecord('juggle', g.kicks);
+  if (rec) { Snd.fanfare(); FX.party(['⚽', '👟']); }
+  setFoot(doneFoot('<b>' + g.kicks + '-mal hochgehalten!</b>' + (rec ? ' Neuer Rekord!' : ''), 'jug-again'));
+}
+ACT['jug-again'] = () => again('juggle');
+
+/* ---------- 6. Rechen-Elfer: 60 Sekunden, jede richtige Antwort ist ein Tor ---------- */
+const MATH_SECS = 60;
+function mathTask() {
+  const k = rnd(4);
+  let a, b, q, r;
+  if (k <= 1) { a = 2 + rnd(9); b = 2 + rnd(9); q = a + ' × ' + b; r = a * b; }
+  else if (k === 2) { a = 10 + rnd(80); b = 2 + rnd(Math.min(40, 99 - a)); q = a + ' + ' + b; r = a + b; }
+  else { a = 20 + rnd(80); b = 2 + rnd(a - 5); q = a + ' − ' + b; r = a - b; }
+  const opts = [r];
+  while (opts.length < 3) { const d = r + (rnd(2) ? 1 : -1) * (1 + rnd(k <= 1 ? Math.max(3, a) : 10)); if (d >= 0 && opts.indexOf(d) < 0) opts.push(d); }
+  return { q, r, opts: shuffle(opts) };
+}
+function mathStart() {
+  const g = U.game = { id: 'rechnen', phase: 'ready', goals: 0, misses: 0 };
+  window.__game = g;
+  const best = gameBest('rechnen');
+  $('#gbody').innerHTML = '<div class="catch-top"><span class="ct-score">⚽ <b id="mtG">0</b> Tore</span><span class="ct-time"><i id="mtT" style="width:100%"></i></span></div>' +
+    '<div class="math-box" id="mbox"><div class="catch-start static"><p>Rechne schnell! Jede richtige Antwort ist ein Tor.</p>' + (best != null ? '<p class="hint">Dein Rekord: ' + best + '</p>' : '') + '<button class="btn btn-lime" data-act="math-go">Los!</button></div></div>';
+  setFoot('<p class="g-msg">Du hast ' + MATH_SECS + ' Sekunden.</p>');
+}
+function mathNext(g) {
+  g.task = mathTask(); g.lock = false;
+  const b = $('#mbox'); if (!b) return;
+  b.innerHTML = '<p class="math-q">' + g.task.q + ' = ?</p><div class="math-opts">' + g.task.opts.map(o => '<button class="btn btn-ghost math-o" data-act="math-pick" data-v="' + o + '">' + o + '</button>').join('') + '</div>';
+}
+ACT['math-go'] = () => {
+  const g = U.game; if (!g || g.id !== 'rechnen' || g.phase !== 'ready') return;
+  g.phase = 'play'; g.t0 = performance.now(); g.end = () => mathEnd(g);
+  mathNext(g); setFoot('<p class="g-msg">Tippe die richtige Zahl.</p>');
+  const tick = () => {
+    if (!gameAlive(g) || g.phase !== 'play') return;
+    const el = (performance.now() - g.t0) / 1000, bar = $('#mtT');
+    if (bar) bar.style.width = (Math.max(0, 1 - el / MATH_SECS) * 100).toFixed(1) + '%';
+    if (el >= MATH_SECS) { mathEnd(g); return; }
+    gLater(tick, 200);
+  };
+  tick();
+};
+ACT['math-pick'] = el => {
+  const g = U.game; if (!g || g.id !== 'rechnen' || g.phase !== 'play' || g.lock) return;
+  const v = +el.dataset.v; g.lock = true;
+  if (v === g.task.r) {
+    g.goals++; $('#mtG').textContent = g.goals; el.classList.add('right'); Snd.goal();
+    const r = el.getBoundingClientRect(); FX.pop(r.left + r.width / 2, r.top, ['⚽']);
+    gLater(() => { if (gameAlive(g) && g.phase === 'play') mathNext(g); }, 380);
+  } else {
+    g.misses++; el.classList.add('wrong'); Snd.soft();
+    const right = $('.math-o[data-v="' + g.task.r + '"]'); if (right) right.classList.add('right');
+    gLater(() => { if (gameAlive(g) && g.phase === 'play') mathNext(g); }, 1000);
+  }
+};
+function mathEnd(g) {
+  if (g.phase !== 'play') return;
+  g.phase = 'over';
+  const rec = gameRecord('rechnen', g.goals);
+  if (g.goals >= 10) { Snd.fanfare(); FX.party(['⚽', '🧠']); }
+  const b = $('#mbox'); if (b) b.innerHTML = '<p class="math-q small">Abpfiff!</p>';
+  setFoot(doneFoot('<b>' + tore(g.goals) + ' in ' + MATH_SECS + ' Sekunden!</b>' + (rec ? ' Neuer Rekord!' : ''), 'math-again'));
+}
+ACT['math-again'] = () => again('rechnen');
+
+/* ---------- 7. Endgegner (Bonusspiel): durch die Abwehr dribbeln ----------
+   Drei Bahnen, Verteidiger kommen entgegen. Links oder rechts tippen wechselt die Bahn.
+   Bewusst so gebaut: anfangs leicht, ab etwa 28 Sekunden wird es rasend schnell und eng, nach 35 bis 40 Sekunden ist es kaum noch zu schaffen. */
+const BOSS_LANES = 3;
+function bossSpeed(t, H) {
+  const base = H * (.42 + Math.min(t, 28) * .008);                // ruhig steigend bis 28 s
+  const boost = t > 28 ? Math.pow((t - 28) / 4, 2) : 0;           // danach immer steiler: 32 s doppelt, 36 s fünffach, 40 s zehnfach
+  return base * (1 + boost);
+}
+function bossGap(t, H) { return H * (t < 12 ? .62 : t < 28 ? .62 - (t - 12) * .014 : Math.max(.2, .4 - (t - 28) * .03)); }
+function bossBlocked(t) { return t < 10 ? 1 : t < 22 ? (Math.random() < (t - 10) / 14 ? 2 : 1) : 2; }
+function bossStart() {
+  const g = U.game = { id: 'boss', phase: 'ready', lane: 1, rows: [], raf: 0, secs: 0 };
+  window.__game = g;
+  const best = gameBest('boss');
+  $('#gbody').innerHTML = '<div class="catch-top"><span class="ct-score">⏱ <b id="bsT">0,0</b> s</span>' + (best != null ? '<span class="ct-score">Rekord <b>' + (best / 10).toFixed(1).replace('.', ',') + '</b> s</span>' : '') + '</div>' +
+    '<div class="boss-area" id="barea"><div class="boss-lanes"><i></i><i></i></div><div class="boss-me" id="bme">' + jerseySVG(S.cfg.jersey.color, S.cfg.jersey.num, 46) + '</div>' +
+    '<div class="catch-start"><p><b>Der Endgegner!</b> Dribble durch die Abwehr.<br>Tippe links oder rechts, um die Bahn zu wechseln.</p><p class="hint">Am Anfang ist es leicht. Dann wird es immer schwerer …</p><button class="btn btn-lime" data-act="boss-go">Anpfiff!</button></div></div>';
+  setFoot('<p class="g-msg">Wie lange hältst du durch?</p>');
+  const area = $('#barea');
+  area.addEventListener('pointerdown', ev => {
+    if (U.game !== g || g.phase !== 'play') return;
+    ev.preventDefault();
+    const r = area.getBoundingClientRect();
+    bossMove(g, ev.clientX - r.left < r.width / 2 ? -1 : 1);
+  });
+}
+function bossMove(g, d) {
+  const n = clamp(g.lane + d, 0, BOSS_LANES - 1); if (n === g.lane) return;
+  g.lane = n; Snd.tap();
+  const me = $('#bme'); if (me) me.style.left = ((n + .5) / BOSS_LANES * 100).toFixed(2) + '%';
+}
+ACT['boss-go'] = () => {
+  const g = U.game; if (!g || g.id !== 'boss' || g.phase !== 'ready') return;
+  const st = $('#barea .catch-start'); if (st) st.remove();
+  const area = $('#barea'); g.W = area.clientWidth; g.H = area.clientHeight;
+  Object.assign(g, { phase: 'play', t0: performance.now(), last: performance.now(), dist: 0, end: () => bossEnd(g, false) });
+  bossMove(g, 0); Snd.kick();
+  const loop = now => {
+    if (!gameAlive(g) || g.phase !== 'play') return;
+    const dt = Math.min(40, now - g.last) / 1000, t = (now - g.t0) / 1000; g.last = now;
+    const v = bossSpeed(t, g.H), area2 = $('#barea'); if (!area2) return;
+    g.dist -= v * dt;
+    if (g.dist <= 0) {
+      g.dist = bossGap(t, g.H);
+      const free = rnd(BOSS_LANES), block = bossBlocked(t), lanes = [];
+      for (let i = 0; i < BOSS_LANES && lanes.length < block; i++) { const l = (free + 1 + i) % BOSS_LANES; if (l !== free) lanes.push(l); }
+      const row = document.createElement('div'); row.className = 'boss-row';
+      row.innerHTML = lanes.map(l => '<span class="boss-def" style="left:' + ((l + .5) / BOSS_LANES * 100).toFixed(2) + '%">' + monsterSVG(t > 28 ? 'lazy' : 'meh', 46) + '</span>').join('');
+      area2.appendChild(row);
+      g.rows.push({ el: row, y: -50, lanes });
+    }
+    const meY = g.H - 62;
+    for (const r of g.rows) {
+      r.y += v * dt; r.el.style.transform = 'translateY(' + r.y.toFixed(1) + 'px)';
+      if (!r.hit && r.y > meY - 40 && r.y < meY + 30 && r.lanes.indexOf(g.lane) >= 0) { r.hit = true; g.secs = t; bossEnd(g, true); return; }
+    }
+    g.rows = g.rows.filter(r => { if (r.y > g.H + 40) { r.el.remove(); return false; } return true; });
+    g.secs = t;
+    const tt = $('#bsT'); if (tt) tt.textContent = t.toFixed(1).replace('.', ',');
+    g.raf = requestAnimationFrame(loop);
+  };
+  g.raf = requestAnimationFrame(loop);
+};
+function bossEnd(g, tackled) {
+  if (g.phase !== 'play') return;
+  g.phase = 'over'; cancelAnimationFrame(g.raf);
+  const tenths = Math.floor(g.secs * 10), rec = gameRecord('boss', tenths);
+  if (tackled) { Snd.soft(); Hap.go([60, 40, 60]); const me = $('#bme'); if (me) me.classList.add('down'); }
+  if (rec) { Snd.fanfare(); FX.party(['⚽', '🔥']); }
+  const s = (tenths / 10).toFixed(1).replace('.', ',');
+  setFoot(doneFoot('<b>' + (tackled ? 'Abgegrätscht nach ' : 'Durchgehalten: ') + s + ' Sekunden!</b>' + (rec ? ' Neuer Rekord!' : g.secs > 30 ? ' Wahnsinn, so weit!' : ''), 'boss-again'));
+}
+ACT['boss-again'] = () => again('boss');
+
+boot();
 })();
 </script>
 </body>

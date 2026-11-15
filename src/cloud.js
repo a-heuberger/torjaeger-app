@@ -121,5 +121,6 @@ async function initCloud() {
   Store.subs.push(db.doc('cfg/progress').onSnapshot(s => { redraw(remoteDoc('cfg/progress', s)); got.prog = true; step(); }, cloudFail));
   Store.subs.push(db.collection('days').onSnapshot(s => { redraw(remoteDays(s)); got.days = true; step(); }, cloudFail));
   Store.subs.push(db.collection('konto').onSnapshot(s => { redraw(remoteKonto(s)); got.konto = true; step(); }, cloudFail));
+  Store.subs.push(db.doc('cfg/play').onSnapshot(s => { redraw(remoteDoc('cfg/play', s)); }, cloudFail));
   Store.readyTimer = setTimeout(() => { if (!got.cfg && !Store.gate) cloudGate('offline'); }, 9000);
 }

@@ -11,8 +11,8 @@ Belohnungs-App für eine Familie (ein Kind): Aufgaben bringen Tore, Karten koste
 | Web-App (Home-Bildschirm der iPhones) | `docs/`, ausgeliefert von GitHub Pages (`main`, Ordner `/docs`) | Firestore (EU), Pfad `families/<Familiencode>/…` | die eigentliche App für Eltern und Kind |
 | Claude-Seite (Artifact) | `build/torjaeger.html`, per Artifact-Werkzeug veröffentlicht | Claude-db | früherer Weg, bleibt als Rückfall (private Seite, Claude-Login nötig) |
 
-`src/`: `logic.js` (Regeln, rein), `svg.js`, `fx.js`, `store.js` (Speicher, Sync, Echo-Erkennung), `cloud.js` (Web-App: Familienlink, Firestore-Adapter, Sperrseiten), `views.js`, `actions.js`, `style.css`, `body.html`.
-Dokumente: `cfg/main` (Einstellungen), `cfg/progress` (Feiern, Eingelöstes, Album), `days/<JJJJ-MM-TT>`, `konto/<id>`. Beide Ausgaben nutzen dieselben Dokumente und dieselbe Schnittstelle (`doc/collection/onSnapshot/set/delete`); `fsAdapter` in `cloud.js` bildet sie auf Firestore ab.
+`src/`: `logic.js` (Regeln, rein), `svg.js`, `fx.js`, `store.js` (Speicher, Sync, Echo-Erkennung), `cloud.js` (Web-App: Familienlink, Firestore-Adapter, Sperrseiten), `views.js`, `actions.js`, `games.js` (Minispiele, danach ruft `build.js` `boot()` auf), `style.css`, `body.html`.
+Dokumente: `cfg/main` (Einstellungen), `cfg/progress` (Feiern, Eingelöstes, Album), `cfg/play` (Spielzeit heute und Bestwerte der Minispiele), `days/<JJJJ-MM-TT>`, `konto/<id>`. Beide Ausgaben nutzen dieselben Dokumente und dieselbe Schnittstelle (`doc/collection/onSnapshot/set/delete`); `fsAdapter` in `cloud.js` bildet sie auf Firestore ab.
 
 ## Befehle
 
@@ -21,7 +21,7 @@ npm install                      # einmalig (firebase, esbuild, Schriften, fireb
 node build.js                    # baut build/ (Claude-Seite, Testversionen) und docs/ (Web-App)
 node test/test-logic.js          # Regeln, rein
 node test/e2e7.js                # Browser-Tests der Claude-Seite (Playwright; global installiert, NODE_PATH=$(npm root -g))
-node test/e2e.js; node test/e2e4.js; node test/e2e6.js
+node test/e2e.js; node test/e2e4.js; node test/e2e6.js; node test/e2e8.js   # e2e8: Minispiele und Spielzeit
 node tools/rules.js <Code> build/test.firestore.rules   # Regeln aus der Vorlage
 ./node_modules/.bin/firebase emulators:start --only firestore --project demo-torjaeger --config firebase.json   # Emulator auf 127.0.0.1:8085 (lädt das Jar beim ersten Start)
 node test/e2e-cloud.js           # Web-App gegen den Emulator: echtes SDK, echte Regeln, zwei Geräte, offline, falscher Code, iPhone-Statusleiste (Abschnitt K)
@@ -52,6 +52,7 @@ Vor jedem Push auf `main` müssen **alle** Suiten grün sein: Push = live für d
 - **Übersicht (Kopf, Heute, Woche) zeigt alle Tore ohne Abzug.** Ziele und Fang rechnen mit Tore minus Minus (`score`); ein eingelöstes Ziel bleibt erreicht; fällt ein noch nicht eingelöstes durch Minus weg, wird es beim Wiedererreichen erneut gefeiert. Sticker-Tüten zählen nach den gesamten Toren (ohne Abzug).
 - Ziele: 25, 50, 75, 100, 125, 150, 175, 200, 250, 300, 500 Tore mit Belohnungstexten des Trainers (alles änderbar). „5 € aufs Guthabenkonto“ bucht beim Einlösen aufs Konto. „Fußballpack“ ist reiner Belohnungstext und hat nichts mit den App-Stickern zu tun.
 - Sticker: 100 (60 normal, 30 selten, 10 ultraselten), 1/2/5 Punkte, 10 Punkte = 1 Bonus-Tor, Tüte alle 6 Tore (einstellbar).
+- **Minispiele** (Karte auf „Heute“, Schalter `games` im Trainer-Bereich): Jedes Tor von gestern (`gain`) = 1 Minute für sechs Minispiele (Elfmeter, Torwart, Memory, Hütchen, Hochhalten, Rechen-Elfer), jedes Tor des Gegners von gestern (`rival`) = 1 Minute für das Bonusspiel **Endgegner**. Nur am Tag danach und erst ab `PLAY_FROM_HOUR` (14 Uhr), Rest verfällt um Mitternacht. Rot gestern = 0 Minuten für Tore (Bonus bleibt), Gelb ändert nichts, Spielfrei/Joker = 0. Die Uhr zählt nur, solange ein Spielfenster offen und die App sichtbar ist; Verbrauch in Sekunden in `cfg/play` (`{ d, r, b, best }`, zwei Geräte: das Größere gilt). Im Trainer-Modus laufen alle Spiele ohne Uhr. Der Endgegner ist absichtlich anfangs leicht und ab etwa 28 s rasend schnell (`bossSpeed`), nach 35–40 s kaum noch schaffbar. Wunsch des Vaters vom 15.11.2026.
 
 ## Schwester-App „Diamanten-Reich“
 

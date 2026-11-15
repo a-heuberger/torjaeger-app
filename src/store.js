@@ -1,5 +1,6 @@
 /* ============ Speicher: geteilte Datenbank der Seite (db) oder lokal (localStorage) ============
    Dokumente: cfg/main (Einstellungen) · cfg/progress (Feiern, Eingelöstes, Saisons) · days/<JJJJ-MM-TT> (ein Tag)
+   · cfg/play (Spielzeit der Minispiele heute, siehe playState in logic.js)
    · konto/<id> (eine Buchung auf dem Guthabenkonto; je Buchung ein Dokument, damit zwei Geräte sich nie überschreiben).
    Eigene Änderungen gehen sofort in den Speicher S und werden gebündelt, eines nach dem anderen, geschrieben.
    Das Echo der eigenen Schreibvorgänge wird erkannt und ignoriert, damit es keine Eingaben überschreibt. */
@@ -14,6 +15,7 @@ const isEmptyDay = d => !d || (!d.off && (!d.m || !Object.keys(d.m).length) && (
 function docBody(key) {
   if (key === 'cfg/main') return jclone(S.cfg);
   if (key === 'cfg/progress') return jclone(S.prog);
+  if (key === 'cfg/play') return S.play ? jclone(S.play) : null;
   if (key.indexOf('konto/') === 0) { const e = S.konto[key.slice(6)]; return e ? jclone(e) : null; }
   const d = S.days[key.slice(5)];
   return d && !isEmptyDay(d) ? jclone(d) : null;
@@ -21,6 +23,7 @@ function docBody(key) {
 function assignDoc(key, data) {
   if (key === 'cfg/main') { Store.migrated = !!(data && (data.v || 0) < 4); S.cfg = migrateCfg(data, U.today); }
   else if (key === 'cfg/progress') S.prog = normProg(data);
+  else if (key === 'cfg/play') S.play = data ? mergePlay(S.play, data) : S.play;      // Verbrauchtes bleibt verbraucht, auch wenn ein anderes Gerät weniger kennt
   else if (key.indexOf('konto/') === 0) { const id = key.slice(6); if (data) S.konto[id] = data; else delete S.konto[id]; }
   else { const ds = key.slice(5); if (data) S.days[ds] = data; else delete S.days[ds]; }
   markChanged();
@@ -31,7 +34,7 @@ const isEcho = (key, json) => (Store.recent[key] || []).indexOf(json) >= 0;
 /* ---- lokal ---- */
 function lsLoad() { try { const j = localStorage.getItem(LS_KEY); return j ? JSON.parse(j) : null; } catch (e) { return null; } }
 function lsSave() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify({ cfg: S.cfg, prog: S.prog, days: S.days, konto: S.konto })); return true; } catch (e) { return false; }
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ cfg: S.cfg, prog: S.prog, days: S.days, konto: S.konto, play: S.play || null })); return true; } catch (e) { return false; }
 }
 
 /* ---- schreiben ---- */
@@ -119,7 +122,7 @@ function initLocal(note) {
   Store.subs.forEach(u => { try { u(); } catch (e) { /* schon beendet */ } }); Store.subs = [];
   Store.mode = 'local';
   const d = lsLoad();
-  if (d) { Store.migrated = !!(d.cfg && (d.cfg.v || 0) < 4); S.cfg = migrateCfg(d.cfg, U.today); S.prog = normProg(d.prog); S.days = d.days || {}; S.konto = d.konto || {}; U.hasCfg = !!d.cfg; markChanged(); }
+  if (d) { Store.migrated = !!(d.cfg && (d.cfg.v || 0) < 4); S.cfg = migrateCfg(d.cfg, U.today); S.prog = normProg(d.prog); S.days = d.days || {}; S.konto = d.konto || {}; S.play = d.play || null; U.hasCfg = !!d.cfg; markChanged(); }
   else U.hasCfg = false;
   Store.lsOk = Store.noAccess && !U.hasCfg ? false : lsSave();         // ohne Zugriff und ohne eigenen Stand nichts anlegen: sonst käme beim nächsten Öffnen ein leeres Spiel statt der Erklärung
   if (note) toast(note, 'warn');
@@ -149,6 +152,7 @@ async function initStore() {
     Store.subs.push(db.doc('cfg/progress').onSnapshot(s => { redraw(remoteDoc('cfg/progress', s)); got.prog = true; step(); }, fail));
     Store.subs.push(db.collection('days').onSnapshot(s => { redraw(remoteDays(s)); got.days = true; step(); }, fail));
     Store.subs.push(db.collection('konto').onSnapshot(s => { redraw(remoteKonto(s)); got.konto = true; step(); }, fail));
+    Store.subs.push(db.doc('cfg/play').onSnapshot(s => { redraw(remoteDoc('cfg/play', s)); }, () => { /* Spielzeit: ohne Lesen bleibt der Stand dieses Geräts */ }));
   } catch (e) { return initLocal('Die Verbindung zum Speicher klappt gerade nicht. Der Stand liegt vorerst nur auf diesem Gerät.'); }
   Store.readyTimer = setTimeout(() => { if (!U.ready) ready(); }, 7000);
 }

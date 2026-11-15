@@ -4,7 +4,7 @@ const U = {
   weekOff: 0, fx: null, pop: false, editTask: null, last: Date.now(), celebQ: [], sheet: null, pin: '',
   bars: {}, fish: null, newSticker: null, muted: false, shots: [], ob: null, ex: null, kx: null, dayBanner: {},
 };
-let S = { cfg: defaultCfg(U.today), prog: normProg(), days: {}, konto: {} };
+let S = { cfg: defaultCfg(U.today), prog: normProg(), days: {}, konto: {}, play: null };
 let _st = null;
 const markChanged = () => { touch(S); _st = null; };
 const ST = () => _st || (_st = computeStats(S, U.today));
@@ -252,8 +252,33 @@ function viewToday(st) {
   else h += '<ul class="tasks">' + e.items.map(it => taskCard(it, ds, e.locked)).join('') + '</ul>';
   if (!e.off) h += extrasCard(e, ds, st);
   if (isToday && !e.off) h += nextGoalCard(st);
+  if (isToday && S.cfg.games !== false) h += gamesCard();
   h += installHint();
   return h;
+}
+/* Minispiele: Spielzeit aus den Toren von gestern (ab 14 Uhr), sechs Spiele und das Bonusspiel Endgegner. Die Spiele stehen in games.js. */
+function gamesCard() {
+  const p = playState(S, new Date()), free = U.unlocked;
+  const min = n => n + (n === 1 ? ' Minute' : ' Minuten');
+  const box = (cls, sec, total, big, small) => '<span class="pt-box ' + cls + (sec > 0 ? '' : ' empty') + '"><b>' + big + '</b><small>' + small + '</small>' +
+    (total > 0 ? '<span class="pt-bar" aria-hidden="true"><i style="width:' + Math.round(sec / total * 100) + '%"></i></span>' : '') + '</span>';
+  const left = s => (s % 60 ? fmtMinSec(s) : min(s / 60));
+  let note;
+  if (free) note = 'Trainer-Modus: Du kannst alle Spiele ohne Uhr ausprobieren.';
+  else if (!p.open) note = p.reg + p.bonus > 0 ? 'Die Spiele gehen heute ab <b>' + p.from + ' Uhr</b> los.' : 'Heute gibt es keine Spielzeit. Jedes Tor heute bringt dir morgen eine Minute.';
+  else if (p.regLeft + p.bonusLeft > 0) note = 'Viel Spaß! Die Uhr läuft nur, solange ein Spiel offen ist.';
+  else note = p.reg + p.bonus > 0 ? 'Die Spielzeit für heute ist verbraucht. Jedes Tor heute bringt dir morgen eine Minute.' : 'Heute gibt es keine Spielzeit. Jedes Tor heute bringt dir morgen eine Minute.';
+  const can = kind => free || (p.open && (kind === 'b' ? p.bonusLeft : p.regLeft) > 0);
+  const tile = id => {
+    const G = GAMES[id], ok = can(G.bonus ? 'b' : 'r');
+    return '<button class="gtile' + (G.bonus ? ' boss' : '') + (ok ? '' : ' off') + '" data-act="game-open" data-game="' + id + '"' + (ok ? '' : ' aria-disabled="true"') + '><span class="gt-art" aria-hidden="true">' + G.art() + '</span><b>' + G.name + '</b><small>' + G.sub + '</small>' + (ok ? '' : '<span class="gt-lock" aria-hidden="true">' + IC.lock + '</span>') + '</button>';
+  };
+  return '<div class="sec-h"><h2>Minispiele</h2><span class="hint">ab ' + p.from + ' Uhr</span></div><section class="card games" aria-label="Minispiele">' +
+    '<div class="play-time">' +
+    box('reg', p.regLeft, p.reg, p.reg ? (p.regLeft === p.reg ? min(p.goals) : 'Noch ' + left(p.regLeft)) : '0 Minuten', 'Minispiele für ' + tore(p.goals) + ' gestern') +
+    box('bon', p.bonusLeft, p.bonus, p.bonus ? (p.bonusLeft === p.bonus ? min(p.rival) : 'Noch ' + left(p.bonusLeft)) : '0 Minuten', 'Endgegner für ' + tore(p.rival) + ' des Gegners') +
+    '</div><p class="hint pt-note">' + note + '</p>' +
+    '<div class="gtiles">' + GAME_IDS.map(tile).join('') + '</div>' + tile(BONUS_GAME) + '</section>';
 }
 /* Auf dem iPhone, solange die Seite noch in Safari läuft: wie sie auf den Home-Bildschirm kommt. */
 function installHint() {
@@ -494,6 +519,7 @@ function viewCoach(st) {
 
   h += '<section class="card coach-sec"><h2>Ablauf und Ton</h2>' +
     switchRow('shoot-mode', c.shootMode !== false, esc(c.name) + ' schießt jedes Tor selbst', 'Du bestätigst, er tippt auf den Ball. Aus: Tore zählen sofort mit Effekt.') +
+    switchRow('games-toggle', c.games !== false, 'Minispiele auf „Heute“', 'Jedes Tor von gestern = 1 Minute Minispiele, jedes Tor des Gegners = 1 Minute Endgegner. Nur am Tag danach, ab ' + PLAY_FROM_HOUR + ' Uhr. Bei Rot keine Minuten für die Tore des Tages. Im Trainer-Modus laufen die Spiele ohne Uhr.') +
     switchRow('sound', !U.muted, 'Ton auf diesem Gerät', 'Torjubel, Netz und Publikum. Auf dem iPhone: Seitenschalter auf laut stellen.') +
     (c.pin ? '<div class="row-btns"><button class="btn btn-ghost btn-sm" data-act="pin-set">Code ändern</button><button class="btn btn-ghost btn-sm" data-act="pin-clear">Code entfernen</button></div>'
       : '<div class="warn-box"><span><b>Kein Trainer-Code gesetzt.</b> Dann kann ' + esc(c.name) + ' selbst Tore vergeben.</span><button class="btn btn-lime btn-sm" data-act="pin-set">Code festlegen</button></div>') + '</section>';

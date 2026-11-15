@@ -37,7 +37,9 @@ function openSheet(html, cls) {
 const setSheet = html => { const s = $('.sheet'); if (s) s.innerHTML = html; };
 function closeSheet() {
   const l = $('#layer'); if (l) l.innerHTML = '';
+  const was = U.sheet;
   U.sheet = null; U.ob = null; U.ex = null; U.kx = null; document.body.classList.remove('noscroll');
+  if (was === 'sheet-game') gameClosed();
 }
 ACT['sheet-close'] = () => { if (U.sheet === 'onboard') return; closeSheet(); };
 function confirmSheet(o, fn) {
@@ -498,6 +500,7 @@ function rulesHTML() {
     '<h3>Minus</h3><p>Das Minus von Karten wird bei den Zielen und beim großen Fang abgezogen. In der Übersicht siehst du immer alle deine Tore. Bei den Erfolgen steht, was davon abgeht und was für die Ziele zählt.</p>' +
     '<h3>Ziele</h3><p>Alle deine Tore zählen zusammen, abzüglich Minus. Bei den Erfolgen siehst du, was du bei welchem Stand bekommst und wie viele Tore noch fehlen. Beim letzten Ziel ist der große Fang an Land. Eine Belohnung, die du schon eingelöst hast, bleibt deine.</p>' +
     '<h3>Sticker</h3><p>Alle ' + c.packEvery + ' Tore gibt es eine Sticker-Tüte. Normale Sticker zählen 1 Punkt, seltene 2 und ultraseltene 5. Je ' + PTS_PER_TOR + ' Punkte ergeben 1 Tor.</p>' +
+    '<h3>Minispiele</h3><p>Für jedes Tor bekommst du am nächsten Tag <b>1 Minute</b> für die Minispiele. Für jedes Tor des Gegners gibt es 1 Minute für das Bonusspiel <b>Endgegner</b>. Gespielt wird ab ' + PLAY_FROM_HOUR + ' Uhr. Was du an dem Tag nicht verspielst, verfällt. Bei Rot gibt es für die Tore des Tages keine Minuten.</p>' +
     '<h3>Dein Konto</h3><p>Für gute Noten wird dir Geld gutgeschrieben. Abgezogen wird nur, wenn du dir etwas wünschst oder Geld ausgezahlt haben willst, mit deinem Ja. Nie als Strafe. Du siehst jederzeit, wie viel dir zusteht.</p>' +
     '<p>Wir haben dich lieb, egal wie das Spiel ausgeht.</p></div>' +
     '<button class="btn btn-ghost btn-block" data-act="sheet-close">Schließen</button>';
@@ -620,6 +623,7 @@ ACT.step = el => {
   }
   o[key] = v; markChanged(); persist('cfg/main', 400); render();
 };
+ACT['games-toggle'] = () => { S.cfg.games = S.cfg.games === false; markChanged(); persist('cfg/main'); render(); };
 ACT['shoot-mode'] = () => { S.cfg.shootMode = S.cfg.shootMode === false; if (S.cfg.shootMode === false) U.shots = []; markChanged(); persist('cfg/main'); render(); };
 ACT.sound = () => {
   U.muted = !U.muted; Snd.setMuted(U.muted);
@@ -707,6 +711,9 @@ function tick() {
     U.today = t; if (wasToday) U.date = t;
     markChanged(); if (U.ready) render();
   }
+  const po = new Date().getHours() >= PLAY_FROM_HOUR;                  // um 14 Uhr gehen die Minispiele auf: Heute neu zeichnen
+  if (U.playOpen !== undefined && po !== U.playOpen && U.ready && !U.sheet) render();
+  U.playOpen = po;
   if (U.unlocked && Date.now() - U.last > 180000) { lockNow(); toast('Trainer-Modus wurde gesperrt.'); }
 }
 function afterLoad() {
@@ -746,7 +753,7 @@ function bindEvents() {
   };
   document.addEventListener('pointerup', endHold); document.addEventListener('pointercancel', endHold);
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) U.hiddenAt = Date.now();
+    if (document.hidden) { U.hiddenAt = Date.now(); gamePause(); }
     else { if (U.unlocked && U.hiddenAt && Date.now() - U.hiddenAt > 60000) lockNow(); tick(); }
   });
 }
@@ -790,4 +797,3 @@ function boot() {
   if (window.__PWA__ && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { /* ohne Offline-Hülle geht es auch */ });
   initStore();
 }
-boot();

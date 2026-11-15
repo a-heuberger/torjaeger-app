@@ -34,6 +34,7 @@ function defaultCfg(today) {
     yellowExpiry: 0,     // 0 = Gelbe verfallen nie; zwei offene Gelbe ergeben Rot
     extraMax: 3,         // höchstens so viele Extra-Tore pro Tag
     packEvery: 6,        // alle so viele Tore gibt es eine Sticker-Tüte
+    games: true,         // Minispiele auf „Heute“ (Spielzeit aus den Toren von gestern, ab 14 Uhr)
     agreement: '',       // Abmachung der Woche (ersetzt den Untertitel der Abmachungs-Aufgabe)
     noteMoney: { 1: 500, 2: 300, 3: 200, 4: 0, 5: 0, 6: 0 },   // Konto: Euro-Cent, die eine Note bringt (bei jeder Buchung änderbar)
     /* Die Gründe für ein Tor oder Kein Tor (Vorgabe des Trainers). Die Untertitel bleiben leer, die Kriterien legt er selbst fest. */
@@ -427,6 +428,62 @@ function coachAdvice(S, today) {
   return out;
 }
 
+/* ---------- Spielzeit für die Minispiele ----------
+   Jedes Tor von gestern = 1 Minute Minispiele heute, jedes Tor des Gegners von gestern = 1 Minute Bonusspiel heute.
+   Gespielt wird nur heute und erst ab PLAY_FROM_HOUR Uhr (nicht in der Schule). Was heute nicht verspielt wird, verfällt.
+   Rote Karte gestern: Die Tore des Tages zählen nicht, also auch keine Spielminuten dafür. Spielfrei oder Joker: keine Minuten.
+   Verbraucht wird in Sekunden und in cfg/play gemerkt: { d: Tag, r: Sekunden Minispiele, b: Sekunden Bonusspiel }. */
+const PLAY_FROM_HOUR = 14;
+const GAME_IDS = ['elfer', 'keeper', 'memory', 'cups', 'juggle', 'rechnen'];
+const BONUS_GAME = 'boss';
+function playBudget(S, today) {
+  const y = addDays(today, -1), e = evalDay(S, y);
+  const goals = e.off ? 0 : Math.max(0, e.gain - e.redMinus), rival = e.off ? 0 : Math.max(0, e.rival);
+  return { from: y, goals, rival, reg: goals * 60, bonus: rival * 60 };
+}
+/* Bestwerte der Spiele (best) liegen mit im selben Dokument und bleiben über die Tage erhalten. Beim Memory zählen wenige Züge. */
+const LOWER_BETTER = { memory: 1 };
+const betterRec = (id, a, b) => (LOWER_BETTER[id] ? a < b : a > b);
+function normBest(o) {
+  const out = {};
+  Object.keys(o || {}).forEach(k => { const v = Math.round(+o[k]); if (/^[a-z]{2,12}$/.test(k) && isFinite(v) && v >= 0) out[k] = v; });
+  return out;
+}
+const normPlay = p => ({ d: String((p && p.d) || ''), r: Math.max(0, Math.round(+(p && p.r)) || 0), b: Math.max(0, Math.round(+(p && p.b)) || 0), best: normBest(p && p.best) });
+/* Zwei Stände zusammenführen: am selben Tag bleibt Verbrauchtes verbraucht (das Größere gilt), sonst gilt der neuere Tag. Bestwerte: der bessere. */
+function mergePlay(a, b) {
+  const x = normPlay(a), y = normPlay(b);
+  const best = Object.assign({}, x.best);
+  Object.keys(y.best).forEach(k => { if (best[k] == null || betterRec(k, y.best[k], best[k])) best[k] = y.best[k]; });
+  if (x.d !== y.d) { const n = x.d > y.d ? x : y; return { d: n.d, r: n.r, b: n.b, best }; }
+  return { d: x.d, r: Math.max(x.r, y.r), b: Math.max(x.b, y.b), best };
+}
+/* Neuen Bestwert eintragen. Liefert true, wenn es einen alten gab und der neue besser ist. */
+function playRecord(S, id, v) {
+  const p = normPlay(S.play), old = p.best[id];
+  if (old != null && !betterRec(id, v, old)) return false;
+  p.best[id] = Math.max(0, Math.round(v)); S.play = p;
+  return old != null;
+}
+/* Stand für jetzt (now: Date). open = ab 14 Uhr; regLeft/bonusLeft = übrige Sekunden heute. */
+function playState(S, now) {
+  const today = fmtDate(now), bud = playBudget(S, today), p = normPlay(S.play);
+  const used = p.d === today ? p : { d: today, r: 0, b: 0 };
+  return {
+    today, open: now.getHours() >= PLAY_FROM_HOUR, from: PLAY_FROM_HOUR, goals: bud.goals, rival: bud.rival, reg: bud.reg, bonus: bud.bonus,
+    usedR: Math.min(used.r, bud.reg), usedB: Math.min(used.b, bud.bonus),
+    regLeft: Math.max(0, bud.reg - used.r), bonusLeft: Math.max(0, bud.bonus - used.b),
+  };
+}
+/* Verbrauch buchen (kind 'r' = Minispiele, 'b' = Bonusspiel). Liefert die neue Zahl verbrauchter Sekunden. */
+function playUse(S, today, kind, secs) {
+  const p = normPlay(S.play), cur = p.d === today ? p : { d: today, r: 0, b: 0, best: p.best };
+  cur[kind] = Math.max(0, cur[kind] + Math.max(0, secs));
+  S.play = cur;
+  return cur[kind];
+}
+const fmtMinSec = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + pad2(s % 60); };
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { fmtEUR, fmtPlain, parseMoney, kontoBalance, kontoList, genitive, STICKER_FACT, factOf, WD_SHORT, WD_LONG, MONTHS_SHORT, fmtDate, parseDate, addDays, dowOf, mondayOf, todayStr, daysBetween, isoWeek, defaultCfg, migrateCfg, normGoals, normProg, taskSub, goalReached, goalList, nextGoal, rewardMoney, LADDER, ladderText, RARITY, RAR_ORDER, RAR_WEIGHT, PTS_PER_TOR, STICKERS, STICKER_BY, rarOf, stickerPoints, stickerBonus, pickSticker, packsLeft, tasksOn, RED_DAY_FROM, redTakesDay, buildLedger, ledgerOf, touch, accountNow, evalDay, evalWeek, computeStats, milestones, coachAdvice };
+  module.exports = { fmtEUR, fmtPlain, parseMoney, kontoBalance, kontoList, genitive, STICKER_FACT, factOf, WD_SHORT, WD_LONG, MONTHS_SHORT, fmtDate, parseDate, addDays, dowOf, mondayOf, todayStr, daysBetween, isoWeek, defaultCfg, migrateCfg, normGoals, normProg, taskSub, goalReached, goalList, nextGoal, rewardMoney, LADDER, ladderText, RARITY, RAR_ORDER, RAR_WEIGHT, PTS_PER_TOR, STICKERS, STICKER_BY, rarOf, stickerPoints, stickerBonus, pickSticker, packsLeft, tasksOn, RED_DAY_FROM, redTakesDay, buildLedger, ledgerOf, touch, accountNow, evalDay, evalWeek, computeStats, milestones, coachAdvice, PLAY_FROM_HOUR, GAME_IDS, BONUS_GAME, playBudget, normPlay, mergePlay, playRecord, playState, playUse, fmtMinSec };
 }
