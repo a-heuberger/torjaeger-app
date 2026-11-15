@@ -436,13 +436,13 @@ function coachAdvice(S, today) {
 }
 
 /* ---------- Spielzeit für die Minispiele ----------
-   Jedes Tor von gestern = 1 Minute Minispiele heute, jedes Tor des Gegners von gestern = 1 Minute Bonusspiel heute.
+   Jedes Tor von gestern = 1 Minute Minispiele heute, jedes Tor des Gegners von gestern = 1 Minute Bonusspiele heute.
    Gespielt wird nur heute und erst ab PLAY_FROM_HOUR Uhr (nicht in der Schule). Was heute nicht verspielt wird, verfällt.
    Rote Karte gestern: Die Tore des Tages zählen nicht, also auch keine Spielminuten dafür. Spielfrei oder Joker: keine Minuten.
-   Verbraucht wird in Sekunden und in cfg/play gemerkt: { d: Tag, r: Sekunden Minispiele, b: Sekunden Bonusspiel }. */
+   Verbraucht wird in Sekunden und in cfg/play gemerkt: { d: Tag, r: Sekunden Minispiele, b: Sekunden Bonusspiele }. */
 const PLAY_FROM_HOUR = 14;
-const GAME_IDS = ['elfer', 'keeper', 'memory', 'cups', 'juggle', 'rechnen'];
-const BONUS_GAME = 'boss';
+const GAME_IDS = ['juggle', 'elfer', 'angeln', 'raubfisch', 'sprung'];
+const BONUS_GAMES = ['boss', 'meteor'];
 function playBudget(S, today) {
   const y = addDays(today, -1), e = evalDay(S, y);
   const goals = e.off ? 0 : Math.max(0, e.gain - e.redMinus), rival = e.off ? 0 : Math.max(0, e.rival);
@@ -492,5 +492,5 @@ function playUse(S, today, kind, secs) {
 const fmtMinSec = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + pad2(s % 60); };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { fmtEUR, fmtPlain, parseMoney, kontoBalance, kontoList, genitive, STICKER_FACT, factOf, WD_SHORT, WD_LONG, MONTHS_SHORT, fmtDate, parseDate, addDays, dowOf, mondayOf, todayStr, daysBetween, isoWeek, defaultCfg, migrateCfg, normGoals, normProg, taskSub, goalReached, goalList, nextGoal, rewardMoney, LADDER, ladderText, RARITY, RAR_ORDER, RAR_WEIGHT, PTS_PER_TOR, STICKERS, STICKER_BY, rarOf, stickerPoints, stickerBonus, pickSticker, packsLeft, tasksOn, RED_DAY_FROM, redTakesDay, YELLOW_DAYS, YELLOW_EXPIRY_FROM, buildLedger, ledgerOf, touch, accountNow, evalDay, evalWeek, computeStats, milestones, coachAdvice, PLAY_FROM_HOUR, GAME_IDS, BONUS_GAME, playBudget, normPlay, mergePlay, playRecord, playState, playUse, fmtMinSec };
+  module.exports = { fmtEUR, fmtPlain, parseMoney, kontoBalance, kontoList, genitive, STICKER_FACT, factOf, WD_SHORT, WD_LONG, MONTHS_SHORT, fmtDate, parseDate, addDays, dowOf, mondayOf, todayStr, daysBetween, isoWeek, defaultCfg, migrateCfg, normGoals, normProg, taskSub, goalReached, goalList, nextGoal, rewardMoney, LADDER, ladderText, RARITY, RAR_ORDER, RAR_WEIGHT, PTS_PER_TOR, STICKERS, STICKER_BY, rarOf, stickerPoints, stickerBonus, pickSticker, packsLeft, tasksOn, RED_DAY_FROM, redTakesDay, YELLOW_DAYS, YELLOW_EXPIRY_FROM, buildLedger, ledgerOf, touch, accountNow, evalDay, evalWeek, computeStats, milestones, coachAdvice, PLAY_FROM_HOUR, GAME_IDS, BONUS_GAMES, playBudget, normPlay, mergePlay, playRecord, playState, playUse, fmtMinSec };
 }

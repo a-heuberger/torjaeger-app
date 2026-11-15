@@ -44,7 +44,7 @@ const H = page => ({
   ok('A neun Aufgaben (die Gründe des Trainers)', await h.cnt('.task') === 9);
   const titles = await h.all('.task h3');
   ok('A Titel und Reihenfolge', JSON.stringify(titles) === JSON.stringify(['Hefteinträge ordentlich', 'Hausaufgabenheft eingetragen', 'Hausaufgaben gut gemacht', 'Zimmer sauber', 'Eingecremt', 'Buch gelesen', 'Spülmaschine ausgeräumt', 'Tisch gedeckt und abgeräumt', 'An Abmachungen gehalten']), JSON.stringify(titles));
-  ok('A kein Level, keine Etappen, keine Wochenziele', !/Level/i.test(await h.txt('body')) && await h.cnt('.lvl-card, .stages, .tbar, .tiers') === 0);
+  ok('A kein Level, keine Etappen, keine Wochenziele (sichtbarer Inhalt, ohne Programmcode)', !/Level/i.test(await h.txt('#app')) && await h.cnt('.lvl-card, .stages, .tbar, .tiers') === 0);
   ok('A ohne Karte: keine Kartenleiste, keine Marke im Kopf', await h.cnt('.cardtop') === 0 && await h.cnt('.hflag') === 0);
   const ng = await h.txt('.nextgoal');
   ok('A Nächstes Ziel: noch 25 Tore bis 25 Tore: Fußballpack', /Noch 25 Tore/.test(ng) && /bis 25 Tore: Fußballpack/.test(ng) && /0\s*\/\s*25/.test(ng), ng);

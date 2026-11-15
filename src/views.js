@@ -276,9 +276,9 @@ function gamesCard() {
   return '<div class="sec-h"><h2>Minispiele</h2><span class="hint">ab ' + p.from + ' Uhr</span></div><section class="card games" aria-label="Minispiele">' +
     '<div class="play-time">' +
     box('reg', p.regLeft, p.reg, p.reg ? (p.regLeft === p.reg ? min(p.goals) : 'Noch ' + left(p.regLeft)) : '0 Minuten', 'Minispiele für ' + tore(p.goals) + ' gestern') +
-    box('bon', p.bonusLeft, p.bonus, p.bonus ? (p.bonusLeft === p.bonus ? min(p.rival) : 'Noch ' + left(p.bonusLeft)) : '0 Minuten', 'Endgegner für ' + tore(p.rival) + ' des Gegners') +
+    box('bon', p.bonusLeft, p.bonus, p.bonus ? (p.bonusLeft === p.bonus ? min(p.rival) : 'Noch ' + left(p.bonusLeft)) : '0 Minuten', 'Bonusspiele für ' + tore(p.rival) + ' des Gegners') +
     '</div><p class="hint pt-note">' + note + '</p>' +
-    '<div class="gtiles">' + GAME_IDS.map(tile).join('') + '</div>' + tile(BONUS_GAME) + '</section>';
+    '<div class="gtiles">' + GAME_IDS.map(tile).join('') + '</div><div class="gbonus">' + BONUS_GAMES.map(tile).join('') + '</div></section>';
 }
 /* Auf dem iPhone, solange die Seite noch in Safari läuft: wie sie auf den Home-Bildschirm kommt. */
 function installHint() {
@@ -519,7 +519,7 @@ function viewCoach(st) {
 
   h += '<section class="card coach-sec"><h2>Ablauf und Ton</h2>' +
     switchRow('shoot-mode', c.shootMode !== false, esc(c.name) + ' schießt jedes Tor selbst', 'Du bestätigst, er tippt auf den Ball. Aus: Tore zählen sofort mit Effekt.') +
-    switchRow('games-toggle', c.games !== false, 'Minispiele auf „Heute“', 'Jedes Tor von gestern = 1 Minute Minispiele, jedes Tor des Gegners = 1 Minute Endgegner. Nur am Tag danach, ab ' + PLAY_FROM_HOUR + ' Uhr. Bei Rot keine Minuten für die Tore des Tages. Im Trainer-Modus laufen die Spiele ohne Uhr.') +
+    switchRow('games-toggle', c.games !== false, 'Minispiele auf „Heute“', 'Jedes Tor von gestern = 1 Minute Minispiele, jedes Tor des Gegners = 1 Minute Bonusspiele (Endgegner, Meteoritenhagel). Nur am Tag danach, ab ' + PLAY_FROM_HOUR + ' Uhr. Bei Rot keine Minuten für die Tore des Tages. Im Trainer-Modus laufen die Spiele ohne Uhr.') +
     switchRow('sound', !U.muted, 'Ton auf diesem Gerät', 'Torjubel, Netz und Publikum. Auf dem iPhone: Seitenschalter auf laut stellen.') +
     (c.pin ? '<div class="row-btns"><button class="btn btn-ghost btn-sm" data-act="pin-set">Code ändern</button><button class="btn btn-ghost btn-sm" data-act="pin-clear">Code entfernen</button></div>'
       : '<div class="warn-box"><span><b>Kein Trainer-Code gesetzt.</b> Dann kann ' + esc(c.name) + ' selbst Tore vergeben.</span><button class="btn btn-lime btn-sm" data-act="pin-set">Code festlegen</button></div>') + '</section>';

@@ -405,7 +405,7 @@ eq('Meilenstein: 27 Tore erreichen das Ziel bei 25', [L.milestones(S, '2026-10-2
   ps = L.playState(P, at('2026-11-13', 14, 0));
   eq('Spielzeit: ab 14:00 offen', ps.open, true);
   eq('Spielzeit: nur am Tag danach (heute zählt nicht, übermorgen nichts)', [L.playState(P, at('2026-11-12', 18)).reg, L.playState(P, at('2026-11-14', 18)).reg], [0, 0]);
-  eq('Spielzeit: Vorgabe 14 Uhr, sechs Spiele und ein Bonusspiel', [L.PLAY_FROM_HOUR, L.GAME_IDS.length, L.BONUS_GAME, L.migrateCfg({}, '2026-11-13').games], [14, 6, 'boss', true]);
+  eq('Spielzeit: Vorgabe 14 Uhr, fünf Minispiele und zwei Bonusspiele', [L.PLAY_FROM_HOUR, L.GAME_IDS, L.BONUS_GAMES, L.migrateCfg({}, '2026-11-13').games], [14, ['juggle', 'elfer', 'angeln', 'raubfisch', 'sprung'], ['boss', 'meteor'], true]);
   // Verbrauch
   L.playUse(P, '2026-11-13', 'r', 100); L.playUse(P, '2026-11-13', 'b', 30);
   ps = L.playState(P, at('2026-11-13', 15));

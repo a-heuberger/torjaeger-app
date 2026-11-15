@@ -1,5 +1,5 @@
-// Minispiele: Spielzeit aus den Toren von gestern (ab 14 Uhr), Uhr im Spielfenster, Abpfiff, Bonusspiel Endgegner,
-// alle sieben Spiele starten, Trainer-Test ohne Uhr, Schalter im Trainer-Bereich, Regelbuch.
+// Minispiele: Spielzeit aus den Toren von gestern (ab 14 Uhr), Uhr im Spielfenster, Abpfiff, Bonusspiele (Endgegner, Meteoritenhagel),
+// alle sieben Spiele starten und lassen sich bedienen, Trainer-Test ohne Uhr, Schalter im Trainer-Bereich, Regelbuch.
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
 const URL = 'file://' + path.resolve('build/torjaeger.test.html');
@@ -39,18 +39,18 @@ const H = page => ({
   // ---- A) vor 14 Uhr: Minuten stehen da, Spiele sind zu ----
   let page = await open(b, BASE(), '2026-11-13T11:30:00'), h = H(page);
   const card = await h.txt('.games');
-  ok('A Karte Minispiele mit 7 Minuten für 7 Tore und 2 Minuten Endgegner', /7 Minuten/.test(card) && /für 7 Tore gestern/.test(card) && /2 Minuten/.test(card) && /2 Tore des Gegners/.test(card), card);
+  ok('A Karte Minispiele mit 7 Minuten für 7 Tore und 2 Minuten Bonusspiele', /7 Minuten/.test(card) && /für 7 Tore gestern/.test(card) && /2 Minuten/.test(card) && /2 Tore des Gegners/.test(card), card);
   ok('A Hinweis: ab 14 Uhr', /ab 14 Uhr los/.test(card), card);
-  ok('A sechs Spiele plus Endgegner, alle gesperrt', await h.cnt('.games .gtile') === 7 && await h.cnt('.games .gtile.off') === 7 && await h.cnt('.gtile.boss') === 1);
-  await page.click('.gtile[data-game="memory"]', { force: true }); await h.wait(300);
+  ok('A fünf Spiele plus zwei Bonusspiele, alle gesperrt', await h.cnt('.gtiles .gtile') === 5 && await h.cnt('.gbonus .gtile.boss') === 2 && await h.cnt('.games .gtile.off') === 7);
+  await page.click('.gtile[data-game="angeln"]', { force: true }); await h.wait(300);
   ok('A Antippen vor 14 Uhr: Hinweis statt Spiel', !(await h.game()) && /ab 14 Uhr/.test(await h.txt('#toast')), await h.txt('#toast'));
   await page.close();
 
   // ---- B) ab 14 Uhr: Spiel öffnen, Uhr läuft, Verbrauch wird gespeichert ----
   page = await open(b, BASE()); h = H(page);
   ok('B um 15 Uhr: alle Spiele offen', await h.cnt('.games .gtile.off') === 0);
-  await page.click('.gtile[data-game="memory"]'); await h.wait(400);
-  ok('B Memory offen: 16 Karten, Uhr zeigt 7:00', await h.cnt('.mcard') === 16 && /7:00/.test(await h.txt('#gclock')), await h.txt('#gclock'));
+  await page.click('.gtile[data-game="angeln"]'); await h.wait(400);
+  ok('B Angeln offen: Leinwand, Startbild, Uhr zeigt 7:00', await h.cnt('.gcv') === 1 && /Petri Heil/.test(await h.txt('.g-ovl')) && /7:00/.test(await h.txt('#gclock')), await h.txt('#gclock'));
   await h.wait(3200);
   const clk = await h.txt('#gclock');
   ok('B Uhr zählt herunter', /6:5[5-8]/.test(clk), clk);
@@ -58,17 +58,12 @@ const H = page => ({
   const play = await h.store('cfg/play');
   ok('B Schließen speichert den Verbrauch (cfg/play, Minispiele)', play && play.d === '2026-11-13' && play.r >= 2 && play.r <= 5 && play.b === 0, JSON.stringify(play));
   ok('B Karte zeigt die übrige Zeit', /Noch 6:5\d/.test(await h.txt('.pt-box.reg')), await h.txt('.pt-box.reg'));
-  // Memory zu Ende spielen
-  await page.click('.gtile[data-game="memory"]'); await h.wait(300);
-  await page.evaluate(async () => {
-    const g = window.__game, byV = {};
-    g.cards.forEach((c, i) => { (byV[c.v] = byV[c.v] || []).push(i); });
-    for (const v of Object.keys(byV)) { for (const i of byV[v]) document.querySelector('.mcard[data-i="' + i + '"]').click(); await new Promise(r => setTimeout(r, 320)); }
-  });
-  await h.wait(500);
-  ok('B Memory gelöst: 8 Züge, Nochmal-Knopf', /Alle Paare gefunden/.test(await h.txt('#gfoot')) && /8 Züge/.test(await h.txt('#gfoot')), await h.txt('#gfoot'));
+  // Hochhalten: ohne Tippen fällt der Ball, Ergebnis wird als Rekord gemerkt
+  await page.click('.gtile[data-game="juggle"]'); await h.wait(300);
+  await page.click('[data-act="jug-go"]'); await h.wait(2600);
+  ok('B Hochhalten: Ball fällt ohne Tippen, Spiel vorbei', (await h.game()).phase === 'over' && /0 Punkte/.test(await h.txt('#gfoot')), await h.txt('#gfoot'));
   await page.click('.g-x'); await h.wait(400);
-  ok('B Rekord im Spielzeit-Dokument', ((await h.store('cfg/play')).best || {}).memory === 8, JSON.stringify(await h.store('cfg/play')));
+  ok('B Rekord im Spielzeit-Dokument', ((await h.store('cfg/play')).best || {}).juggle === 0, JSON.stringify(await h.store('cfg/play')));
   await page.close();
 
   // ---- C) Zeit läuft ab: Abpfiff, danach gesperrt; Endgegner hat eigene Zeit ----
@@ -76,9 +71,9 @@ const H = page => ({
   ok('C Karte: noch 0:02', /Noch 0:02/.test(await h.txt('.pt-box.reg')), await h.txt('.pt-box.reg'));
   await page.click('.gtile[data-game="elfer"]'); await h.wait(3600);
   ok('C Abpfiff nach Ablauf', /Abpfiff/.test(await h.txt('.sheet')) && /Spielzeit ist um/.test(await h.txt('.sheet')) && !(await h.game()), await h.txt('.sheet'));
-  ok('C Hinweis auf übrige Endgegner-Zeit', /2:00 für den Endgegner/.test(await h.txt('.sheet')), await h.txt('.sheet'));
+  ok('C Hinweis auf übrige Bonus-Zeit', /2:00 für die Bonusspiele/.test(await h.txt('.sheet')), await h.txt('.sheet'));
   await page.click('.sheet [data-act="sheet-close"]'); await h.wait(400);
-  ok('C Minispiele gesperrt, Endgegner offen', await h.cnt('.gtiles .gtile.off') === 6 && await h.cnt('.gtile.boss.off') === 0);
+  ok('C Minispiele gesperrt, Bonusspiele offen', await h.cnt('.gtiles .gtile.off') === 5 && await h.cnt('.gbonus .gtile.off') === 0);
   ok('C Verbrauch gespeichert: 420 s', (await h.store('cfg/play')).r === 420, JSON.stringify(await h.store('cfg/play')));
   await page.click('.gtile[data-game="elfer"]', { force: true }); await h.wait(300);
   ok('C gesperrtes Spiel öffnet nicht', !(await h.game()) && /keine Spielzeit mehr/.test(await h.txt('#toast')), await h.txt('#toast'));
@@ -95,47 +90,62 @@ const H = page => ({
 
   // ---- D) Rote Karte gestern: keine Minuten für Tore ----
   page = await open(b, BASE({ 'days/2026-11-14': { m: marks(T9.slice(3, 7), 'y'), ev: [{ k: 'r', id: 'r1' }] } }), '2026-11-15T16:00:00'); h = H(page);
-  ok('D Rot gestern: 0 Minuten Minispiele', /0 Minuten/.test(await h.txt('.pt-box.reg')) && await h.cnt('.gtiles .gtile.off') === 6, await h.txt('.pt-box.reg'));
+  ok('D Rot gestern: 0 Minuten Minispiele', /0 Minuten/.test(await h.txt('.pt-box.reg')) && await h.cnt('.gtiles .gtile.off') === 5, await h.txt('.pt-box.reg'));
   await page.close();
 
   // ---- E) Trainer-Test: alle Spiele ohne Uhr, jedes startet ohne Fehler ----
   page = await open(b, BASE({ 'days/2026-11-12': {} }), '2026-11-13T09:00:00'); h = H(page);
   await page.click('[data-act="lock"]'); await h.wait(300);
   ok('E Trainer: Spiele offen trotz 9 Uhr und 0 Minuten', await h.cnt('.games .gtile.off') === 0 && /Trainer-Modus/.test(await h.txt('.pt-note')));
-  const starts = { elfer: null, keeper: 'keep-go', memory: null, cups: null, juggle: 'jug-go', rechnen: 'math-go', boss: 'boss-go' };
+  const starts = { juggle: 'jug-go', elfer: 'elf-go', angeln: 'fish-go', raubfisch: 'raub-go', sprung: 'jump-go', boss: 'boss-go', meteor: 'met-go' };
   for (const id of Object.keys(starts)) {
     await page.click('.gtile[data-game="' + id + '"]'); await h.wait(300);
     const clock = await h.txt('#gclock');
-    if (starts[id]) { await page.click('[data-act="' + starts[id] + '"]'); }
-    await h.wait(900);
+    await page.click('[data-act="' + starts[id] + '"]');
+    await h.wait(700);
     const g = await h.game();
-    ok('E ' + id + ': läuft, Uhr „Trainer-Test“', g && g.id === id && /Trainer-Test/.test(clock), JSON.stringify(g) + ' ' + clock);
+    ok('E ' + id + ': läuft, Uhr „Trainer-Test“', g && g.id === id && g.phase !== 'ready' && /Trainer-Test/.test(clock), JSON.stringify(g) + ' ' + clock);
     await page.click('.g-x'); await h.wait(250);
   }
   ok('E Trainer-Test verbraucht keine Zeit', !(await h.store('cfg/play')) || (await h.store('cfg/play')).r === 0);
-  // Elfmeter: ein Schuss zählt
-  await page.click('.gtile[data-game="elfer"]'); await h.wait(300);
-  await page.click('#elfGoal', { position: { x: 20, y: 30 } }); await h.wait(1500);
-  ok('E Elfmeter: Schuss 2 von 10, Ergebnis angezeigt', (await h.txt('#elfS')) === '2' && /Tor!|Gehalten!|Nächster Schuss/.test(await h.txt('#gfoot')), await h.txt('#gfoot'));
+  const box = async () => page.evaluate(() => { const r = document.querySelector('.gcv').getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
+  // Elfmeter: Wischen vom Ball nach oben = Schuss, Ergebnis wird gezählt
+  await page.click('.gtile[data-game="elfer"]'); await h.wait(300); await page.click('[data-act="elf-go"]'); await h.wait(200);
+  let bx = await box();
+  await page.mouse.move(bx.x + bx.w / 2, bx.y + bx.h * .84); await page.mouse.down();
+  for (let k = 1; k <= 5; k++) { await page.mouse.move(bx.x + bx.w / 2 + 14 * k, bx.y + bx.h * .84 - 34 * k); await h.wait(25); }
+  await page.mouse.up(); await h.wait(1300);
+  const el = await page.evaluate(() => ({ goals: __game.goals, misses: __game.misses }));
+  ok('E Elfmeter: Wischen schießt, Tor oder Fehlschuss gezählt', el.goals + el.misses === 1, JSON.stringify(el));
   await page.click('.g-x'); await h.wait(250);
-  // Rechen-Elfer: richtige Antwort = Tor
-  await page.click('.gtile[data-game="rechnen"]'); await h.wait(300);
-  await page.click('[data-act="math-go"]'); await h.wait(200);
-  const r = await page.evaluate(() => window.__game.task.r);
-  await page.click('.math-o[data-v="' + r + '"]'); await h.wait(500);
-  ok('E Rechen-Elfer: richtige Antwort = 1 Tor, neue Aufgabe', (await h.txt('#mtG')) === '1' && await h.cnt('.math-o') === 3);
+  // Angeln: auswerfen, Biss, anhauen, drillen, Fang mit Gewicht und Rekord
+  await page.click('.gtile[data-game="angeln"]'); await h.wait(300); await page.click('[data-act="fish-go"]'); await h.wait(300);
+  bx = await box();
+  await page.mouse.click(bx.x + bx.w / 2, bx.y + bx.h / 2); await h.wait(900);
+  ok('E Angeln: ausgeworfen, Pose im Wasser', (await h.game()).phase === 'wait');
+  await page.mouse.click(bx.x + bx.w / 2, bx.y + bx.h / 2); await h.wait(300);
+  ok('E Angeln: zu früh angehauen = Fisch weg', (await h.game()).phase === 'lost');
+  await h.wait(1700);
+  await page.mouse.click(bx.x + bx.w / 2, bx.y + bx.h / 2); await h.wait(900);
+  await page.evaluate(() => { __game.biteAt = __game.t + .1; __game.nibAt = __game.t + 50; }); await h.wait(300);
+  await page.mouse.move(bx.x + bx.w / 2, bx.y + bx.h / 2); await page.mouse.down(); await h.wait(300);
+  ok('E Angeln: beim Biss angehauen = Drill', (await h.game()).phase === 'fight');
+  await page.evaluate(() => { __game.fish.D = .02; __game.fish.T = .4; }); await h.wait(400); await page.mouse.up();
+  ok('E Angeln: eingeholt = Fang mit Art und Gewicht', (await h.game()).phase === 'caught' && /Weiter angeln/.test(await h.txt('.g-ovl')) && /\d+(,\d+)? (kg|g)/.test(await h.txt('.g-ovl')), await h.txt('.g-ovl'));
+  ok('E Angeln: schwerster Fisch als Rekord in Gramm', ((await h.store('cfg/play')).best || {}).angeln > 0, JSON.stringify(await h.store('cfg/play')));
+  await page.click('[data-act="fish-next"]'); await h.wait(200);
+  ok('E Angeln: weiter angeln', (await h.game()).phase === 'aim');
   await page.click('.g-x'); await h.wait(250);
-  // Hochhalten: ohne Tippen fällt der Ball
-  await page.click('.gtile[data-game="juggle"]'); await h.wait(300);
-  await page.click('[data-act="jug-go"]'); await h.wait(2500);
-  ok('E Hochhalten: Ball fällt ohne Tippen, Spiel vorbei', (await h.game()).phase === 'over' && /0-mal hochgehalten/.test(await h.txt('#gfoot')), await h.txt('#gfoot'));
+  // Fischsprung: ohne Tippen sinkt die Forelle auf den Grund
+  await page.click('.gtile[data-game="sprung"]'); await h.wait(300); await page.click('[data-act="jump-go"]'); await h.wait(2200);
+  ok('E Fischsprung: ohne Tippen auf dem Grund, Spiel vorbei', (await h.game()).phase === 'over' && /Punkte/.test(await h.txt('#gfoot')), await h.txt('#gfoot'));
   await page.click('.g-x'); await h.wait(250);
-  // Hütchen: Mischen endet mit Wahl
-  await page.click('.gtile[data-game="cups"]'); await h.wait(4800);
-  ok('E Hütchen: nach dem Mischen wählbar', (await h.game()).phase === 'pick' && await page.evaluate(() => !document.querySelector('.cup').disabled));
-  const ball = await page.evaluate(() => window.__game.ball);
-  await page.click('.cup[data-cup="' + ball + '"]', { force: true }); await h.wait(400);
-  ok('E Hütchen: richtig getippt = gefunden', /Gefunden/.test(await h.txt('#gfoot')), await h.txt('#gfoot'));
+  // Raubfisch: Finger hält, Hecht schwimmt hin
+  await page.click('.gtile[data-game="raubfisch"]'); await h.wait(300); await page.click('[data-act="raub-go"]'); await h.wait(200);
+  bx = await box();
+  const x0 = await page.evaluate(() => __game.me.x);
+  await page.mouse.move(bx.x + bx.w - 20, bx.y + bx.h / 2); await page.mouse.down(); await h.wait(700); await page.mouse.up();
+  ok('E Raubfisch: Hecht schwimmt zum Finger', (await page.evaluate(() => __game.me.x)) > x0 + 40);
   await page.click('.g-x'); await h.wait(250);
   // Schalter im Trainer-Bereich und Regelbuch
   await page.click('[data-act="tab"][data-tab="coach"]'); await h.wait(300);
@@ -158,6 +168,15 @@ const H = page => ({
   await h.wait(1500);
   const g2 = await page.evaluate(() => ({ phase: window.__game && window.__game.phase, rows: window.__game && window.__game.rows.length }));
   ok('F Endgegner nach 34 s: sofort abgegrätscht', g2.phase === 'over' && /Abgegrätscht nach 3\d,\d Sekunden/.test(await h.txt('#gfoot')), JSON.stringify(g2) + ' ' + await h.txt('#gfoot'));
+  await page.close();
+
+  // ---- G) Meteoritenhagel: nach 20 Sekunden praktisch unmöglich, schneller als der Endgegner ----
+  page = await open(b, BASE()); h = H(page);
+  await page.click('.gtile[data-game="meteor"]'); await h.wait(300);
+  await page.click('[data-act="met-go"]'); await h.wait(100);
+  await page.evaluate(() => { __game.t0 -= 20; });
+  await h.wait(2000);
+  ok('G Meteoritenhagel nach 20 s: sofort getroffen', (await h.game()).phase === 'over' && /2\d,\d Sekunden/.test(await h.txt('#gfoot')), await h.txt('#gfoot'));
   await page.close();
 
   console.log(errs.length ? 'FEHLER im Browser:\n' + errs.join('\n') : 'ok   keine Konsolenfehler');
