@@ -113,7 +113,15 @@ const H = page => ({
   ok('C Ben: Kopfzeile zeigt weiter 9 Tore gesamt (kein Abzug in der Übersicht)', (await h.txt('.chip:not(.fire):not(.lockbtn) b')) === '9', await h.txt('.chip:not(.fire):not(.lockbtn) b'));
   await page.close();
 
-  // ---- C2) Gelbe verfallen nie ----
+  // ---- C3) ab 15.11.2026: Gelbe verfällt nach einer Woche ----
+  page = await open(b, BASE({ 'days/2026-11-15': { ev: [{ k: 'y', id: 'n1' }] } }), { now: '2026-11-16T18:00:00' }); h = H(page);
+  ok('C3 Gelbe vom 15.11.: am 16.11. oben mit Ablaufdatum So 22.11.', await h.cnt('.cardtop.yellow') === 1 && /Verfällt am So 22\.11\.$/.test(await h.txt('.cardtop.yellow')) && !/\.\./.test(await h.txt('.cardtop.yellow')) && await h.cnt('.hflag') === 1, await h.txt('.cardtop'));
+  await page.close();
+  page = await open(b, BASE({ 'days/2026-11-15': { ev: [{ k: 'y', id: 'n1' }] } }), { now: '2026-11-22T18:00:00' }); h = H(page);
+  ok('C3 am 22.11. verfallen: keine Kartenleiste, keine Marke im Kopf', await h.cnt('.cardtop.yellow') === 0 && await h.cnt('.hflag') === 0);
+  await page.close();
+
+  // ---- C2) vor dem 15.11.2026 verfielen Gelbe nie (alte Stände bleiben) ----
   page = await open(b, BASE({ 'days/2026-08-01': { ev: [{ k: 'y', id: 'old1' }] } })); h = H(page);
   ok('C2 Gelbe vom 1. August gilt am 30. Oktober noch (ohne doppelten Punkt)', await h.cnt('.cardtop.yellow') === 1 && /Seit Sa 1\.8\. Minus 1 Tor bei den Zielen\. Eine zweite Gelbe ergibt Rot/.test(await h.txt('.cardtop.yellow')) && !/\.\./.test(await h.txt('.cardtop.yellow')), await h.txt('.cardtop'));
   await page.close();
@@ -283,12 +291,12 @@ const H = page => ({
   ok('I Entfernen fragt nach', /Ziel entfernen\?/.test(await h.txt('.sheet h2')));
   await page.click('[data-act="confirm-yes"]'); await h.wait(400);
   ok('I wieder elf', await h.cnt('.goaled') === 11);
-  ok('I Karten: Gelb 1 Tor einstellbar, Rot = alle Tore des Tages (ohne Zahl), keine Beispiel-Listen', /1 Tor/.test(await h.txt('#sec-karten .field:nth-of-type(1) output')) && /alle Tore des Tages/.test(await h.txt('#sec-karten .field:nth-of-type(2)')) && await h.cnt('#sec-karten .field:nth-of-type(2) .stepper') === 0 && await h.cnt('#f-yellow, #f-red') === 0 && /verfallen nie/.test(await h.txt('#sec-karten .hint')));
+  ok('I Karten: Gelb 1 Tor einstellbar, Rot = alle Tore des Tages (ohne Zahl), keine Beispiel-Listen', /1 Tor/.test(await h.txt('#sec-karten .field:nth-of-type(1) output')) && /alle Tore des Tages/.test(await h.txt('#sec-karten .field:nth-of-type(2)')) && await h.cnt('#sec-karten .field:nth-of-type(2) .stepper') === 0 && await h.cnt('#f-yellow, #f-red') === 0 && /verfällt nach einer Woche \(das Minus bleibt\)/.test(await h.txt('#sec-karten .hint')));
   const kh = await h.txt('#sec-karten .hint');
   ok('I Karten-Hinweis: Minus bei Zielen und Fang, Übersicht zeigt alle Tore, Zurückziehen, kein Grund nötig, kein Einspruch', /Jede Karte kostet Minus-Tore/.test(kh) && /bei den Zielen und beim Fang abgezogen/.test(kh) && /weiter alle Tore von Ben/.test(kh) && /Einen Grund musst du nie angeben/.test(kh) && /jede Karte zurückziehen/.test(kh) && !/Einspruch/.test(kh), kh);
   ok('I Karten: Einstellungen heißen „Minus-Tore“ (nicht mehr Gegner-Tore)', /Gelbe Karte: Minus-Tore/.test(await h.txt('#sec-karten')) && /Rote Karte: alle Tore des Tages/.test(await h.txt('#sec-karten')) && !/für den Gegner/.test(await h.txt('#sec-karten')));
   ok('I Schnellauswahl für „Eigener Grund: Tor“ steht im Trainer, „Karten-Gründe“ nicht', /Schnellauswahl für „Eigener Grund: Tor“/.test(await h.txt('#sec-karten')) && !/Beispiele für Gelb/.test(await h.txt('#sec-karten')));
-  ok('I Kurzanleitung nennt Eigener Grund, Gelb (nie verfallen), Rot, Ziele', /Eigener Grund/.test(await h.txt('.rules')) && /verfallen nie/.test(await h.txt('.rules')) && /Ein Grund ist nie nötig/.test(await h.txt('.rules')) && /von 45 bis 500 Toren/.test(await h.txt('.rules')), await h.txt('.rules'));
+  ok('I Kurzanleitung nennt Eigener Grund, Gelb (Verfall nach einer Woche), Rot, Ziele', /Eigener Grund/.test(await h.txt('.rules')) && /verfallen nach einer Woche/.test(await h.txt('.rules')) && /Ein Grund ist nie nötig/.test(await h.txt('.rules')) && /von 45 bis 500 Toren/.test(await h.txt('.rules')), await h.txt('.rules'));
   ok('I Aufgaben-Idee legt Aufgabe an', true);
   await page.click('[data-act="task-idea"][data-i="0"]'); await h.wait(400);
   ok('I neue Aufgabe „Zähne geputzt“ ab heute', await h.cnt('.tlist .trow') === 10 && (await h.store('cfg/main')).tasks.some(t => t.title === 'Zähne geputzt' && t.from === '2026-10-30'));
@@ -297,7 +305,7 @@ const H = page => ({
   await page.click('[data-act="rules"]'); await h.wait(400);
   const rb = await h.txt('.sheet');
   ok('I Regelbuch: Minus erklärt, Übersicht zeigt alle Tore, Eingelöstes bleibt, kein Einspruch', /Minus 1 Tor\./.test(rb) && /Rot gibt es höchstens einmal am Tag/.test(rb) && /bei den Zielen und beim großen Fang abgezogen/.test(rb) && /In der Übersicht siehst du immer alle deine Tore/.test(rb) && /schon eingelöst hast, bleibt deine/.test(rb) && !/Einspruch|Ich sehe das anders|Der Gegner bekommt 4/.test(rb), rb.slice(0, 60));
-  ok('I Regelbuch: nie verfallen, Zwei Gelbe = Rot, keine Beispiele, Trainer entscheidet, Ziele, Sticker 1/2/5', /verfallen nie/.test(rb) && /Zwei Gelbe ergeben automatisch Rot/.test(rb) && !/Zum Beispiel/.test(rb) && /Karten entscheidet der Trainer allein/.test(rb) && /Alle Tore von diesem Tag gehen bei den Zielen ab, und an diesem Tag gibt es keine Tore mehr/.test(rb) && /Alle deine Tore zählen zusammen/.test(rb) && /1 Punkt, seltene 2 und ultraseltene 5/.test(rb), rb.slice(0, 80));
+  ok('I Regelbuch: Verfall nach einer Woche, Zwei Gelbe = Rot, keine Beispiele, Trainer entscheidet, Ziele, Sticker 1/2/5', /verfällt nach einer Woche/.test(rb) && /Zwei Gelbe innerhalb einer Woche ergeben automatisch Rot/.test(rb) && !/Zum Beispiel/.test(rb) && /Karten entscheidet der Trainer allein/.test(rb) && /Alle Tore von diesem Tag gehen bei den Zielen ab, und an diesem Tag gibt es keine Tore mehr/.test(rb) && /Alle deine Tore zählen zusammen/.test(rb) && /1 Punkt, seltene 2 und ultraseltene 5/.test(rb), rb.slice(0, 80));
   await page.close();
 
   // ---- J) Umstellung von Fassung 3: Aufgaben, Ziele, Karten; wird einmal gesichert ----
@@ -320,7 +328,7 @@ const H = page => ({
   ok('J der alte Tag zeigt seine sechs Aufgaben und 7:0', await h.cnt('.task') === 6 && (await h.txt('.digits')) === '7:0', await h.txt('.digits'));
   await h.wait(600);
   const saved = await h.store('cfg/main');
-  ok('J Umstellung wurde einmal gesichert: Fassung 4, neue Aufgaben, Karten 1/3, nie verfallen', saved && saved.v === 4 && saved.tasks.length === 11 && saved.yellowPts === 1 && saved.redPts === 3 && saved.yellowExpiry === 0 && saved.goals.length === 11 && saved.tiers === undefined, saved ? JSON.stringify({ v: saved.v, n: saved.tasks.length, y: saved.yellowPts, r: saved.redPts }) : 'nichts');
+  ok('J Umstellung wurde einmal gesichert: Fassung 4, neue Aufgaben, Karten 1/3, Verfall 7 Tage', saved && saved.v === 4 && saved.tasks.length === 11 && saved.yellowPts === 1 && saved.redPts === 3 && saved.yellowExpiry === 7 && saved.goals.length === 11 && saved.tiers === undefined, saved ? JSON.stringify({ v: saved.v, n: saved.tasks.length, y: saved.yellowPts, r: saved.redPts }) : 'nichts');
   ok('J Fischname bleibt, altes Fang-Ziel gilt nicht mehr', saved.season.title === 'Der Riesen-Hecht' && saved.season.goal === undefined);
   await page.close();
 

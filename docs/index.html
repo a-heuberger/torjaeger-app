@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-bOSd9i7yt3u3pC98e3iYxuyubC3OJurr0Oqxwh1dLkA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://www.google.com; font-src 'self'; connect-src 'self' https://firestore.googleapis.com wss://firestore.googleapis.com; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-kpi6zHG+NrjlnUgN0LMrdOkvpHAxic9GrJjB2gzlnAU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://www.google.com; font-src 'self'; connect-src 'self' https://firestore.googleapis.com wss://firestore.googleapis.com; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
 <title>Torjäger</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#06110b">
@@ -931,7 +931,7 @@ function defaultCfg(today) {
     shootMode: true,     // Ben schießt jedes bestätigte Tor selbst
     yellowPts: 1,        // Gelbe Karte = so viele Minus-Tore (zählen bei Zielen und Fang, nicht in der Übersicht)
     redPts: 3,           // Rote Karte bis 13.11.2026: so viele Minus-Tore (gilt nur noch für alte Tage, siehe RED_DAY_FROM)
-    yellowExpiry: 0,     // 0 = Gelbe verfallen nie; zwei offene Gelbe ergeben Rot
+    yellowExpiry: 7,     // Gelbe verfallen nach 7 Tagen (fest, siehe YELLOW_DAYS); zwei offene Gelbe ergeben Rot
     extraMax: 3,         // höchstens so viele Extra-Tore pro Tag
     packEvery: 6,        // alle so viele Tore gibt es eine Sticker-Tüte
     games: true,         // Minispiele auf „Heute“ (Spielzeit aus den Toren von gestern, ab 14 Uhr)
@@ -1023,11 +1023,11 @@ function migrateCfg(c, today) {
   out.noteMoney = {};
   for (let g = 1; g <= 6; g++) { const v = old.noteMoney && old.noteMoney[g] != null ? +old.noteMoney[g] : d.noteMoney[g]; out.noteMoney[g] = Math.max(0, Math.min(2000, Math.round(v) || 0)); }
   out.goals = normGoals(!legacy ? old.goals : null, d.goals);     // frühere Wochenpokale und Fang-Ziel fallen weg: Es gilt die neue Liste
-  /* Karten: ab Version 4 kosten sie Minus-Tore (Gelb 1, Rot 3) und verfallen nie. */
-  if (legacy) { out.yellowPts = d.yellowPts; out.redPts = d.redPts; out.yellowExpiry = 0; if (+old.packEvery === 5 || old.packEvery == null) out.packEvery = d.packEvery; }
+  /* Karten: ab Version 4 kosten sie Minus-Tore (Gelb 1, Rot 3). Gelbe verfallen nach YELLOW_DAYS Tagen (ab YELLOW_EXPIRY_FROM). */
+  if (legacy) { out.yellowPts = d.yellowPts; out.redPts = d.redPts; if (+old.packEvery === 5 || old.packEvery == null) out.packEvery = d.packEvery; }
   out.yellowPts = clampInt(out.yellowPts, 0, 5, d.yellowPts);
   out.redPts = clampInt(out.redPts, 1, 9, d.redPts);
-  out.yellowExpiry = 0;
+  out.yellowExpiry = YELLOW_DAYS;
   out.packEvery = clampInt(out.packEvery, 3, 20, d.packEvery);
   if (!Array.isArray(out.goodReasons)) out.goodReasons = d.goodReasons;
   ['tiers', 'yellowRules', 'redRules', 'cardsOn', 'yellowLimit'].forEach(k => { delete out[k]; });
@@ -1147,9 +1147,15 @@ function tasksOn(S, ds) {
    Ältere Rote bleiben bei redPts Minus-Tore (so wurden sie gegeben, der Stand von damals ändert sich nicht). */
 const RED_DAY_FROM = '2026-11-14';
 const redTakesDay = ds => ds >= RED_DAY_FROM;
+/* Gelbe Karten verfallen nach einer Woche (Wunsch vom 15.11.2026): Eine Gelbe vom Tag D zählt bis D+6 mit, ab D+7 ist sie weg. */
+const YELLOW_DAYS = 7;
+const YELLOW_EXPIRY_FROM = '2026-11-15';
+const yellowExpires = ds => ds >= YELLOW_EXPIRY_FROM;
 
 /* ---------- Karten (rechnet alle Tage der Reihe nach durch) ----------
-   Gelb = Verwarnung und kostet yellowPts Minus-Tore. Gelbe verfallen nie.
+   Gelb = Verwarnung und kostet yellowPts Minus-Tore. Ab YELLOW_EXPIRY_FROM verfällt eine offene Gelbe nach YELLOW_DAYS Tagen
+   (sie zählt dann nicht mehr für Rot; ihr Minus bleibt, es wurde an ihrem Tag abgezogen). Vorher galten Gelbe unbegrenzt:
+   So bleiben alte Tage und alte automatische Rote, wie sie waren.
    Zwei offene Gelbe = automatisch Rot. Rot kostet alle Tore des Tages (vor RED_DAY_FROM: redPts), höchstens einmal pro Tag, und leert die Gelben.
    Das Minus für „alle Tore des Tages“ rechnet evalDay dazu (L.redHit), weil erst dort die Tore des Tages feststehen.
    Das Minus (L.minus) steht bei den Zielen und beim Fang auf der Rechnung. Die Tore des Tages und der Spielstand bleiben unberührt,
@@ -1160,7 +1166,7 @@ const redTakesDay = ds => ds >= RED_DAY_FROM;
 function buildLedger(S) {
   const cfg = S.cfg;
   const limit = 2;
-  const expiry = Math.max(0, +cfg.yellowExpiry || 0);
+  const expiry = YELLOW_DAYS;
   const yPts = Math.max(0, +cfg.yellowPts || 0), rPts = Math.max(0, +cfg.redPts || 0);
   const xMax = Math.max(0, cfg.extraMax == null ? 3 : +cfg.extraMax);
   const dates = Object.keys(S.days).filter(ds => (!S.days[ds].off || S.days[ds].joker) && (S.days[ds].ev || []).length).sort();
@@ -1169,7 +1175,7 @@ function buildLedger(S) {
   for (const ds of dates) {
     const L = { plus: 0, plusRaw: 0, plusN: 0, yellow: 0, red: 0, autoRed: 0, fair: 0, minus: 0, redHit: false, rivalFree: 0, freeNo: 0, entries: [] };
     let redDone = false;
-    const live = () => { if (expiry > 0) active = active.filter(d => daysBetween(d, ds) < expiry); };
+    const live = () => { if (yellowExpires(ds)) active = active.filter(d => daysBetween(d, ds) < expiry); };
     const sendOff = (auto, e, src) => {
       const counts = !redDone; redDone = true;
       if (auto) L.autoRed++; else L.red++;
@@ -1199,11 +1205,12 @@ function ledgerOf(S) {
 }
 const touch = S => { S._v = (S._v || 0) + 1; };
 
-/* Stand des Verwarnungskontos (offene Gelbe; ohne Verfall, solange yellowExpiry 0 ist). */
+/* Stand des Verwarnungskontos: offene Gelbe und wann die älteste verfällt (vor YELLOW_EXPIRY_FROM ohne Verfall). */
 function accountNow(S, today) {
   const lg = ledgerOf(S);
-  const act = lg.expiry > 0 ? lg.active.filter(d => daysBetween(d, today) < lg.expiry) : lg.active.slice();
-  return { count: act.length, limit: lg.limit, dates: act, expires: act.length && lg.expiry > 0 ? addDays(act[0], lg.expiry) : null, expiry: lg.expiry };
+  const on = yellowExpires(today);
+  const act = on ? lg.active.filter(d => daysBetween(d, today) < lg.expiry) : lg.active.slice();
+  return { count: act.length, limit: lg.limit, dates: act, expires: act.length && on ? addDays(act[0], lg.expiry) : null, expiry: lg.expiry };
 }
 
 /* ---------- Ein Tag ---------- */
@@ -1385,7 +1392,7 @@ function playUse(S, today, kind, secs) {
 const fmtMinSec = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + pad2(s % 60); };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { fmtEUR, fmtPlain, parseMoney, kontoBalance, kontoList, genitive, STICKER_FACT, factOf, WD_SHORT, WD_LONG, MONTHS_SHORT, fmtDate, parseDate, addDays, dowOf, mondayOf, todayStr, daysBetween, isoWeek, defaultCfg, migrateCfg, normGoals, normProg, taskSub, goalReached, goalList, nextGoal, rewardMoney, LADDER, ladderText, RARITY, RAR_ORDER, RAR_WEIGHT, PTS_PER_TOR, STICKERS, STICKER_BY, rarOf, stickerPoints, stickerBonus, pickSticker, packsLeft, tasksOn, RED_DAY_FROM, redTakesDay, buildLedger, ledgerOf, touch, accountNow, evalDay, evalWeek, computeStats, milestones, coachAdvice, PLAY_FROM_HOUR, GAME_IDS, BONUS_GAME, playBudget, normPlay, mergePlay, playRecord, playState, playUse, fmtMinSec };
+  module.exports = { fmtEUR, fmtPlain, parseMoney, kontoBalance, kontoList, genitive, STICKER_FACT, factOf, WD_SHORT, WD_LONG, MONTHS_SHORT, fmtDate, parseDate, addDays, dowOf, mondayOf, todayStr, daysBetween, isoWeek, defaultCfg, migrateCfg, normGoals, normProg, taskSub, goalReached, goalList, nextGoal, rewardMoney, LADDER, ladderText, RARITY, RAR_ORDER, RAR_WEIGHT, PTS_PER_TOR, STICKERS, STICKER_BY, rarOf, stickerPoints, stickerBonus, pickSticker, packsLeft, tasksOn, RED_DAY_FROM, redTakesDay, YELLOW_DAYS, YELLOW_EXPIRY_FROM, buildLedger, ledgerOf, touch, accountNow, evalDay, evalWeek, computeStats, milestones, coachAdvice, PLAY_FROM_HOUR, GAME_IDS, BONUS_GAME, playBudget, normPlay, mergePlay, playRecord, playState, playUse, fmtMinSec };
 }
 
 /* ============ Grafik: Ball, Pokal, Wappen, Karten, Icons, Angel-Szene ============ */
@@ -2300,7 +2307,7 @@ function cardTop(st) {
   if (e.red > 0) h += '<section class="cardtop red" role="status">' + cardSVG('red', 36) + '<span class="ct-tx"><b>Rote Karte heute</b><small>' + (e.redAll ? 'Die Tore von heute zählen nicht für die Ziele' + (e.redMinus ? ' (Minus ' + tore(e.redMinus) + ')' : '') + ', und heute gibt es keine Tore mehr. Morgen geht es neu los.' : 'Minus ' + tore(c.redPts) + ' bei den Zielen.') + '</small></span></section>';
   if (st.account.count > 0) {
     const d = st.account.dates[0];
-    h += '<section class="cardtop yellow" role="status">' + cardSVG('yellow', 36) + '<span class="ct-tx"><b>Gelbe Karte</b><small>' + (d === U.today ? 'Heute bekommen. ' : d ? 'Seit ' + fmtShort(d) + ' ' : '') + (c.yellowPts ? 'Minus ' + tore(c.yellowPts) + ' bei den Zielen. ' : '') + 'Eine zweite Gelbe ergibt Rot.</small></span></section>';
+    h += '<section class="cardtop yellow" role="status">' + cardSVG('yellow', 36) + '<span class="ct-tx"><b>Gelbe Karte</b><small>' + (d === U.today ? 'Heute bekommen. ' : d ? 'Seit ' + fmtShort(d) + ' ' : '') + (c.yellowPts ? 'Minus ' + tore(c.yellowPts) + ' bei den Zielen. ' : '') + 'Eine zweite Gelbe ergibt Rot.' + (st.account.expires ? ' Verfällt am ' + fmtShort(st.account.expires) : '') + '</small></span></section>';
   }
   return h;
 }
@@ -2673,7 +2680,7 @@ function viewCoach(st) {
     '<ul class="rules">' +
     '<li>' + IC.check.replace('<svg', '<svg style="color:var(--lime)"') + '<span><b>Tor</b> für jede geschaffte Aufgabe. <b>Kein Tor</b>: Der Gegner bekommt ein Tor.</span></li>' +
     '<li>' + IC.plus.replace('<svg', '<svg style="color:var(--lime)"') + '<span><b>Eigener Grund</b>: frei eingeben, wofür es ein Tor oder kein Tor gibt (Tor höchstens ' + c.extraMax + 'mal am Tag).</span></li>' +
-    '<li>' + cardSVG('yellow', 22) + '<span><b>Gelb</b> ist eine Verwarnung: Minus ' + tore(c.yellowPts) + '. Gelbe verfallen nie. Zwei Gelbe ergeben automatisch Rot.</span></li>' +
+    '<li>' + cardSVG('yellow', 22) + '<span><b>Gelb</b> ist eine Verwarnung: Minus ' + tore(c.yellowPts) + '. Gelbe verfallen nach einer Woche. Zwei Gelbe ergeben automatisch Rot.</span></li>' +
     '<li>' + cardSVG('red', 22) + '<span><b>Rot</b>: Alle Tore des Tages gehen ab, danach gibt es an diesem Tag keine Tore mehr. Ein Grund ist nie nötig. In der Übersicht bleiben alle Tore stehen, das Minus wird nur bei Zielen und Fang abgezogen.</span></li>' +
     '<li>' + trophySVG('gold', 22) + '<span><b>Ziele</b>: Alle Tore zählen zusammen, abzüglich Minus. Es gibt Belohnungen von ' + gs[0].at + ' bis ' + gs[gs.length - 1].at + ' Toren.</span></li></ul>' +
     '<div class="row-btns"><button class="btn btn-ghost btn-sm" data-act="parents">Hinweise für Eltern</button><button class="btn btn-ghost btn-sm" data-act="rules">Regelbuch ansehen</button><button class="btn btn-ghost btn-sm" data-act="lock">' + IC.lock + 'Trainer-Modus beenden</button></div></section>';
@@ -2695,7 +2702,7 @@ function viewCoach(st) {
     '<div class="field"><span>Name des Fischs im Angelbild</span><input type="text" id="f-season-title" data-bind="season:title" value="' + esc(c.season.title) + '" maxlength="40" aria-label="Name des Fischs"></div>' +
     '<div class="field"><span>Sticker-Tüte</span><div class="row-btns" style="align-items:center">' + stepper('cfg', 'packEvery', c.packEvery, 3, 20, 1, ' Tore') + '</div><small>So viele Tore bis zur nächsten Tüte. Sticker zählen 1, 2 oder 5 Punkte (normal, selten, ultraselten), je ' + PTS_PER_TOR + ' Punkte ergeben 1 Bonus-Tor. Das ist fest.</small></div></section>';
 
-  h += '<section class="card coach-sec" id="sec-karten"><h2>Karten</h2><p class="hint">Gelb ist eine Verwarnung. Zwei Gelbe ergeben automatisch Rot. Gelbe Karten verfallen nie. Jede Karte kostet Minus-Tore: Sie werden bei den Zielen und beim Fang abgezogen und stehen bei den Erfolgen als Minus. In der Übersicht und im Kopf zeigt die App weiter alle Tore von ' + esc(c.name) + '. Einen Grund musst du nie angeben. Du kannst jede Karte zurückziehen.</p>' +
+  h += '<section class="card coach-sec" id="sec-karten"><h2>Karten</h2><p class="hint">Gelb ist eine Verwarnung. Zwei Gelbe ergeben automatisch Rot. Eine Gelbe Karte verfällt nach einer Woche (das Minus bleibt). Jede Karte kostet Minus-Tore: Sie werden bei den Zielen und beim Fang abgezogen und stehen bei den Erfolgen als Minus. In der Übersicht und im Kopf zeigt die App weiter alle Tore von ' + esc(c.name) + '. Einen Grund musst du nie angeben. Du kannst jede Karte zurückziehen.</p>' +
     '<div class="field"><span>Gelbe Karte: Minus-Tore</span>' + stepper('cfg', 'yellowPts', c.yellowPts, 0, 5, 1, c.yellowPts === 1 ? ' Tor' : ' Tore') + '</div>' +
     '<div class="field"><span>Rote Karte: alle Tore des Tages</span><small>Bei Rot gehen alle Tore dieses Tages bei den Zielen ab, und an diesem Tag gibt es danach keine Tore mehr (Kein Tor geht weiter). Wirkt höchstens einmal pro Tag, auch bei automatischem Rot.</small></div>' +
     '<div class="field"><span>Eigene Tor-Gründe höchstens pro Tag</span>' + stepper('cfg', 'extraMax', c.extraMax, 1, 10, 1, '') + '</div>' +
@@ -3239,7 +3246,7 @@ function rulesHTML() {
     '<div class="rb"><h3>Tore</h3><ul class="rb-list">' + c.tasks.filter(t => !(t.until && t.until <= U.today)).map(t => '<li><b>' + esc(t.icon) + ' ' + esc(t.title) + '</b>' + (taskSub(c, t) ? ': ' + esc(taskSub(c, t)) : '') + (t.bonus ? ' (Bonus, +' + t.pts + ')' : '') + '</li>').join('') + '</ul>' +
     '<p><b>Tor</b> für jede geschaffte Aufgabe. <b>Kein Tor</b>, wenn es nicht geklappt hat: Dann bekommt der Gegner ein Tor.</p>' +
     '<p><b>Eigener Grund:</b> Der Trainer kann frei eintragen, wofür es ein Tor oder kein Tor gibt (Tore höchstens ' + c.extraMax + ' am Tag).</p>' +
-    '<h3>' + cardSVG('yellow', 20) + ' Gelbe Karte</h3><p>Eine Verwarnung. ' + gy + ' Gelbe Karten verfallen nie. <b>Zwei Gelbe ergeben automatisch Rot.</b></p>' +
+    '<h3>' + cardSVG('yellow', 20) + ' Gelbe Karte</h3><p>Eine Verwarnung. ' + gy + ' Eine Gelbe Karte verfällt nach einer Woche. <b>Zwei Gelbe innerhalb einer Woche ergeben automatisch Rot.</b></p>' +
     '<h3>' + cardSVG('red', 20) + ' Rote Karte</h3><p>Alle Tore von diesem Tag gehen bei den Zielen ab, und an diesem Tag gibt es keine Tore mehr. Rot gibt es höchstens einmal am Tag. Am nächsten Tag geht es neu los. Karten entscheidet der Trainer allein, und er kann sie zurückziehen.</p>' +
     '<h3>Minus</h3><p>Das Minus von Karten wird bei den Zielen und beim großen Fang abgezogen. In der Übersicht siehst du immer alle deine Tore. Bei den Erfolgen steht, was davon abgeht und was für die Ziele zählt.</p>' +
     '<h3>Ziele</h3><p>Alle deine Tore zählen zusammen, abzüglich Minus. Bei den Erfolgen siehst du, was du bei welchem Stand bekommst und wie viele Tore noch fehlen. Beim letzten Ziel ist der große Fang an Land. Eine Belohnung, die du schon eingelöst hast, bleibt deine.</p>' +

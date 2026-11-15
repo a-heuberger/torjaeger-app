@@ -23,7 +23,7 @@ eq('daysBetween DST', L.daysBetween('2026-10-24', '2026-10-26'), 2);
 let S = mk();
 eq('Aufgaben: genau die neun Gründe in der Reihenfolge des Trainers', S.cfg.tasks.map(t => t.title), ['Hefteinträge ordentlich', 'Hausaufgabenheft eingetragen', 'Hausaufgaben gut gemacht', 'Zimmer sauber', 'Eingecremt', 'Buch gelesen', 'Spülmaschine ausgeräumt', 'Tisch gedeckt und abgeräumt', 'An Abmachungen gehalten']);
 eq('Aufgaben: ein Tor je Grund, kein Bonus, Hefte und Hausaufgaben nur an Schultagen', [S.cfg.tasks.every(t => t.pts === 1 && !t.bonus), S.cfg.tasks.filter(t => t.days.length === 5).map(t => t.id), S.cfg.tasks.filter(t => t.days.length === 7).length], [true, ['t_hefte', 't_notiert', 't_hausaufgaben'], 6]);
-eq('Karten: Gelb 1, Rot 3 Minus-Tore, Gelbe verfallen nie', [S.cfg.yellowPts, S.cfg.redPts, S.cfg.yellowExpiry, S.cfg.extraMax, S.cfg.packEvery], [1, 3, 0, 3, 6]);
+eq('Karten: Gelb 1, Rot 3 Minus-Tore, Gelbe verfallen nach 7 Tagen', [S.cfg.yellowPts, S.cfg.redPts, S.cfg.yellowExpiry, S.cfg.extraMax, S.cfg.packEvery], [1, 3, 7, 3, 6]);
 eq('Ziele: die elf Vorgaben des Trainers', S.cfg.goals.map(g => g.at + ' ' + g.reward), [
   '25 Fußballpack', '50 5 € aufs Guthabenkonto', '75 Eine Stunde YouTube Handyzeit', '100 Wird später festgelegt', '125 Fußballpack', '150 5 € aufs Guthabenkonto',
   '175 Zum Asiamarkt nach Mühldorf inkl. 20 € Guthaben', '200 Wird später festgelegt', '250 5 € aufs Guthabenkonto', '300 Wird später festgelegt', '500 Ausflug in den Freizeitpark']);
@@ -56,13 +56,24 @@ eq('zwei Gelbe am Tag: Minus 1 + 1 + 3, Spielstand 9:0 bleibt', [e.yellow, e.red
 eq('automatisches Rot merkt sich die zweite Gelbe', e.entries.filter(x => x.auto).map(x => [x.auto, x.src]), [['sum', 'y2']]);
 eq('Konto leer nach Rot', L.accountNow(S, '2026-10-19').count, 0);
 
-// Gelbe verfallen nie: auch nach Monaten ergibt die zweite Gelbe Rot
-S = mk({ '2026-10-19': { ev: [Y] }, '2027-02-03': { m: ALL, ev: [Y2] } });
-e = L.evalDay(S, '2027-02-03');
-eq('Gelb im Oktober + Gelb im Februar = Rot (Minus 1 + alle 9 Tore am Tag des Februar)', [e.red, e.minus, L.accountNow(S, '2027-02-03').count], [1, 10, 0]);
-eq('eine Gelbe vom Oktober gilt auch im Dezember noch', L.accountNow(mk({ '2026-10-19': { ev: [Y] } }), '2026-12-01').count, 1);
-S = mk({ '2026-10-19': { ev: [Y] } }, { v: 4, yellowExpiry: 7 });
-eq('ein eingestellter Verfall wird ignoriert', [S.cfg.yellowExpiry, L.accountNow(S, '2027-03-01').count], [0, 1]);
+// Vor dem 15.11.2026 verfielen Gelbe nie: alte Tage und alte automatische Rote bleiben, wie sie waren
+S = mk({ '2026-10-19': { ev: [Y] }, '2026-11-10': { m: ALL, ev: [Y2] } });
+e = L.evalDay(S, '2026-11-10');
+eq('alt: Gelb im Oktober + Gelb am 10.11. = Rot (Minus 1 + 3, vor dem Stichtag für Rot)', [e.red, e.minus], [1, 4]);
+eq('alt: am 14.11. gilt eine Gelbe vom Oktober noch', L.accountNow(mk({ '2026-10-19': { ev: [Y] } }), '2026-11-14').count, 1);
+// Ab 15.11.2026: Eine Gelbe verfällt nach einer Woche (Tag D zählt bis D+6, ab D+7 weg)
+eq('neu: am 15.11. ist die Gelbe vom Oktober verfallen', L.accountNow(mk({ '2026-10-19': { ev: [Y] } }), '2026-11-15').count, 0);
+S = mk({ '2026-11-15': { ev: [Y] } });
+eq('neu: Gelbe vom 15.11. gilt bis 21.11., verfällt am 22.11.', [L.accountNow(S, '2026-11-15').count, L.accountNow(S, '2026-11-15').expires, L.accountNow(S, '2026-11-21').count, L.accountNow(S, '2026-11-22').count], [1, '2026-11-22', 1, 0]);
+S = mk({ '2026-11-15': { ev: [Y] }, '2026-11-21': { m: ALL, ev: [Y2] } });
+e = L.evalDay(S, '2026-11-21');
+eq('neu: zweite Gelbe nach 6 Tagen = Rot (alle 9 Tore + 1)', [e.red, e.minus], [1, 10]);
+S = mk({ '2026-11-15': { ev: [Y] }, '2026-11-22': { m: ALL, ev: [Y2] } });
+e = L.evalDay(S, '2026-11-22');
+eq('neu: zweite Gelbe nach 7 Tagen = nur Gelb, wieder eine offen', [e.red, e.minus, L.accountNow(S, '2026-11-22').count, L.accountNow(S, '2026-11-22').expires], [0, 1, 1, '2026-11-29']);
+eq('neu: Minus der verfallenen Gelben bleibt bei den Zielen', L.evalDay(mk({ '2026-11-15': { ev: [Y] } }), '2026-11-15').minus, 1);
+S = mk({ '2026-10-19': { ev: [Y] } }, { v: 4, yellowExpiry: 0 });
+eq('ein gespeichertes „nie verfallen“ wird zu 7 Tagen', [S.cfg.yellowExpiry, L.accountNow(S, '2027-03-01').count], [7, 0]);
 S = mk({ '2026-10-19': { ev: [Y, Y2] }, '2026-10-20': { ev: [{ k: 'y', id: 'y3' }] } });
 eq('nach dem Rot fängt das Zählen wieder bei eins an', [L.accountNow(S, '2026-10-20').count, L.evalDay(S, '2026-10-20').red, L.evalDay(S, '2026-10-20').minus], [1, 0, 1]);
 S = mk({ '2026-10-19': { ev: [Y] }, '2026-10-20': { ev: [Y2] }, '2026-10-21': { ev: [{ k: 'y', id: 'y3' }] } });
@@ -229,7 +240,7 @@ V3.tasks = [
 const M = L.migrateCfg(V3, '2026-11-20');
 eq('Version 3: gleiche Nummern werden umbenannt, alte laufen aus, neue gelten ab dem Stichtag, eigene bleiben', M.tasks.map(t => t.id + (t.until ? ':aus' : '') + (t.from ? ':ab' : '')), ['t_hefte:ab', 't_notiert', 't_hausaufgaben', 't_zimmer', 't_eincremen:ab', 't_buch:ab', 't_spuelmaschine:ab', 't_tisch:ab', 't_abmachung', 't_ehrlich:aus', 't_note:aus', 't_eigene']);
 eq('Version 3: Titel der übernommenen Aufgaben neu, Untertitel leer', M.tasks.filter(t => ['t_notiert', 't_zimmer', 't_abmachung'].indexOf(t.id) >= 0).map(t => t.title + '|' + t.sub), ['Hausaufgabenheft eingetragen|', 'Zimmer sauber|', 'An Abmachungen gehalten|']);
-eq('Version 3: Karten (Gelb 1, Rot 3, nie verfallen), Tüte alle 6, Fischname bleibt, alte Ziele gelten nicht mehr', [M.yellowPts, M.redPts, M.yellowExpiry, M.packEvery, M.season.title, M.goals.length, M.goals[0].at, M.v], [1, 3, 0, 6, 'Mein Hecht', 11, 25, 4]);
+eq('Version 3: Karten (Gelb 1, Rot 3, Verfall 7 Tage), Tüte alle 6, Fischname bleibt, alte Ziele gelten nicht mehr', [M.yellowPts, M.redPts, M.yellowExpiry, M.packEvery, M.season.title, M.goals.length, M.goals[0].at, M.v], [1, 3, 7, 6, 'Mein Hecht', 11, 25, 4]);
 eq('Umstellung ist unabhängig vom Datum', JSON.stringify(L.migrateCfg(V3, '2027-05-01')) === JSON.stringify(M), true);
 eq('zweiter Durchlauf ändert nichts mehr', JSON.stringify(L.migrateCfg(JSON.parse(JSON.stringify(M)), '2028-01-01')) === JSON.stringify(M), true);
 // Der Verlauf bleibt: Tage vor der Umstellung haben ihre alten Aufgaben und alle Tore

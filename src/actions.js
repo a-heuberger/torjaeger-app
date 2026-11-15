@@ -495,7 +495,7 @@ function rulesHTML() {
     '<div class="rb"><h3>Tore</h3><ul class="rb-list">' + c.tasks.filter(t => !(t.until && t.until <= U.today)).map(t => '<li><b>' + esc(t.icon) + ' ' + esc(t.title) + '</b>' + (taskSub(c, t) ? ': ' + esc(taskSub(c, t)) : '') + (t.bonus ? ' (Bonus, +' + t.pts + ')' : '') + '</li>').join('') + '</ul>' +
     '<p><b>Tor</b> für jede geschaffte Aufgabe. <b>Kein Tor</b>, wenn es nicht geklappt hat: Dann bekommt der Gegner ein Tor.</p>' +
     '<p><b>Eigener Grund:</b> Der Trainer kann frei eintragen, wofür es ein Tor oder kein Tor gibt (Tore höchstens ' + c.extraMax + ' am Tag).</p>' +
-    '<h3>' + cardSVG('yellow', 20) + ' Gelbe Karte</h3><p>Eine Verwarnung. ' + gy + ' Gelbe Karten verfallen nie. <b>Zwei Gelbe ergeben automatisch Rot.</b></p>' +
+    '<h3>' + cardSVG('yellow', 20) + ' Gelbe Karte</h3><p>Eine Verwarnung. ' + gy + ' Eine Gelbe Karte verfällt nach einer Woche. <b>Zwei Gelbe innerhalb einer Woche ergeben automatisch Rot.</b></p>' +
     '<h3>' + cardSVG('red', 20) + ' Rote Karte</h3><p>Alle Tore von diesem Tag gehen bei den Zielen ab, und an diesem Tag gibt es keine Tore mehr. Rot gibt es höchstens einmal am Tag. Am nächsten Tag geht es neu los. Karten entscheidet der Trainer allein, und er kann sie zurückziehen.</p>' +
     '<h3>Minus</h3><p>Das Minus von Karten wird bei den Zielen und beim großen Fang abgezogen. In der Übersicht siehst du immer alle deine Tore. Bei den Erfolgen steht, was davon abgeht und was für die Ziele zählt.</p>' +
     '<h3>Ziele</h3><p>Alle deine Tore zählen zusammen, abzüglich Minus. Bei den Erfolgen siehst du, was du bei welchem Stand bekommst und wie viele Tore noch fehlen. Beim letzten Ziel ist der große Fang an Land. Eine Belohnung, die du schon eingelöst hast, bleibt deine.</p>' +

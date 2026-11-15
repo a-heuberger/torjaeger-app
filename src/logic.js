@@ -31,7 +31,7 @@ function defaultCfg(today) {
     shootMode: true,     // Ben schießt jedes bestätigte Tor selbst
     yellowPts: 1,        // Gelbe Karte = so viele Minus-Tore (zählen bei Zielen und Fang, nicht in der Übersicht)
     redPts: 3,           // Rote Karte bis 13.11.2026: so viele Minus-Tore (gilt nur noch für alte Tage, siehe RED_DAY_FROM)
-    yellowExpiry: 0,     // 0 = Gelbe verfallen nie; zwei offene Gelbe ergeben Rot
+    yellowExpiry: 7,     // Gelbe verfallen nach 7 Tagen (fest, siehe YELLOW_DAYS); zwei offene Gelbe ergeben Rot
     extraMax: 3,         // höchstens so viele Extra-Tore pro Tag
     packEvery: 6,        // alle so viele Tore gibt es eine Sticker-Tüte
     games: true,         // Minispiele auf „Heute“ (Spielzeit aus den Toren von gestern, ab 14 Uhr)
@@ -123,11 +123,11 @@ function migrateCfg(c, today) {
   out.noteMoney = {};
   for (let g = 1; g <= 6; g++) { const v = old.noteMoney && old.noteMoney[g] != null ? +old.noteMoney[g] : d.noteMoney[g]; out.noteMoney[g] = Math.max(0, Math.min(2000, Math.round(v) || 0)); }
   out.goals = normGoals(!legacy ? old.goals : null, d.goals);     // frühere Wochenpokale und Fang-Ziel fallen weg: Es gilt die neue Liste
-  /* Karten: ab Version 4 kosten sie Minus-Tore (Gelb 1, Rot 3) und verfallen nie. */
-  if (legacy) { out.yellowPts = d.yellowPts; out.redPts = d.redPts; out.yellowExpiry = 0; if (+old.packEvery === 5 || old.packEvery == null) out.packEvery = d.packEvery; }
+  /* Karten: ab Version 4 kosten sie Minus-Tore (Gelb 1, Rot 3). Gelbe verfallen nach YELLOW_DAYS Tagen (ab YELLOW_EXPIRY_FROM). */
+  if (legacy) { out.yellowPts = d.yellowPts; out.redPts = d.redPts; if (+old.packEvery === 5 || old.packEvery == null) out.packEvery = d.packEvery; }
   out.yellowPts = clampInt(out.yellowPts, 0, 5, d.yellowPts);
   out.redPts = clampInt(out.redPts, 1, 9, d.redPts);
-  out.yellowExpiry = 0;
+  out.yellowExpiry = YELLOW_DAYS;
   out.packEvery = clampInt(out.packEvery, 3, 20, d.packEvery);
   if (!Array.isArray(out.goodReasons)) out.goodReasons = d.goodReasons;
   ['tiers', 'yellowRules', 'redRules', 'cardsOn', 'yellowLimit'].forEach(k => { delete out[k]; });
@@ -247,9 +247,15 @@ function tasksOn(S, ds) {
    Ältere Rote bleiben bei redPts Minus-Tore (so wurden sie gegeben, der Stand von damals ändert sich nicht). */
 const RED_DAY_FROM = '2026-11-14';
 const redTakesDay = ds => ds >= RED_DAY_FROM;
+/* Gelbe Karten verfallen nach einer Woche (Wunsch vom 15.11.2026): Eine Gelbe vom Tag D zählt bis D+6 mit, ab D+7 ist sie weg. */
+const YELLOW_DAYS = 7;
+const YELLOW_EXPIRY_FROM = '2026-11-15';
+const yellowExpires = ds => ds >= YELLOW_EXPIRY_FROM;
 
 /* ---------- Karten (rechnet alle Tage der Reihe nach durch) ----------
-   Gelb = Verwarnung und kostet yellowPts Minus-Tore. Gelbe verfallen nie.
+   Gelb = Verwarnung und kostet yellowPts Minus-Tore. Ab YELLOW_EXPIRY_FROM verfällt eine offene Gelbe nach YELLOW_DAYS Tagen
+   (sie zählt dann nicht mehr für Rot; ihr Minus bleibt, es wurde an ihrem Tag abgezogen). Vorher galten Gelbe unbegrenzt:
+   So bleiben alte Tage und alte automatische Rote, wie sie waren.
    Zwei offene Gelbe = automatisch Rot. Rot kostet alle Tore des Tages (vor RED_DAY_FROM: redPts), höchstens einmal pro Tag, und leert die Gelben.
    Das Minus für „alle Tore des Tages“ rechnet evalDay dazu (L.redHit), weil erst dort die Tore des Tages feststehen.
    Das Minus (L.minus) steht bei den Zielen und beim Fang auf der Rechnung. Die Tore des Tages und der Spielstand bleiben unberührt,
@@ -260,7 +266,7 @@ const redTakesDay = ds => ds >= RED_DAY_FROM;
 function buildLedger(S) {
   const cfg = S.cfg;
   const limit = 2;
-  const expiry = Math.max(0, +cfg.yellowExpiry || 0);
+  const expiry = YELLOW_DAYS;
   const yPts = Math.max(0, +cfg.yellowPts || 0), rPts = Math.max(0, +cfg.redPts || 0);
   const xMax = Math.max(0, cfg.extraMax == null ? 3 : +cfg.extraMax);
   const dates = Object.keys(S.days).filter(ds => (!S.days[ds].off || S.days[ds].joker) && (S.days[ds].ev || []).length).sort();
@@ -269,7 +275,7 @@ function buildLedger(S) {
   for (const ds of dates) {
     const L = { plus: 0, plusRaw: 0, plusN: 0, yellow: 0, red: 0, autoRed: 0, fair: 0, minus: 0, redHit: false, rivalFree: 0, freeNo: 0, entries: [] };
     let redDone = false;
-    const live = () => { if (expiry > 0) active = active.filter(d => daysBetween(d, ds) < expiry); };
+    const live = () => { if (yellowExpires(ds)) active = active.filter(d => daysBetween(d, ds) < expiry); };
     const sendOff = (auto, e, src) => {
       const counts = !redDone; redDone = true;
       if (auto) L.autoRed++; else L.red++;
@@ -299,11 +305,12 @@ function ledgerOf(S) {
 }
 const touch = S => { S._v = (S._v || 0) + 1; };
 
-/* Stand des Verwarnungskontos (offene Gelbe; ohne Verfall, solange yellowExpiry 0 ist). */
+/* Stand des Verwarnungskontos: offene Gelbe und wann die älteste verfällt (vor YELLOW_EXPIRY_FROM ohne Verfall). */
 function accountNow(S, today) {
   const lg = ledgerOf(S);
-  const act = lg.expiry > 0 ? lg.active.filter(d => daysBetween(d, today) < lg.expiry) : lg.active.slice();
-  return { count: act.length, limit: lg.limit, dates: act, expires: act.length && lg.expiry > 0 ? addDays(act[0], lg.expiry) : null, expiry: lg.expiry };
+  const on = yellowExpires(today);
+  const act = on ? lg.active.filter(d => daysBetween(d, today) < lg.expiry) : lg.active.slice();
+  return { count: act.length, limit: lg.limit, dates: act, expires: act.length && on ? addDays(act[0], lg.expiry) : null, expiry: lg.expiry };
 }
 
 /* ---------- Ein Tag ---------- */
@@ -485,5 +492,5 @@ function playUse(S, today, kind, secs) {
 const fmtMinSec = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + pad2(s % 60); };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { fmtEUR, fmtPlain, parseMoney, kontoBalance, kontoList, genitive, STICKER_FACT, factOf, WD_SHORT, WD_LONG, MONTHS_SHORT, fmtDate, parseDate, addDays, dowOf, mondayOf, todayStr, daysBetween, isoWeek, defaultCfg, migrateCfg, normGoals, normProg, taskSub, goalReached, goalList, nextGoal, rewardMoney, LADDER, ladderText, RARITY, RAR_ORDER, RAR_WEIGHT, PTS_PER_TOR, STICKERS, STICKER_BY, rarOf, stickerPoints, stickerBonus, pickSticker, packsLeft, tasksOn, RED_DAY_FROM, redTakesDay, buildLedger, ledgerOf, touch, accountNow, evalDay, evalWeek, computeStats, milestones, coachAdvice, PLAY_FROM_HOUR, GAME_IDS, BONUS_GAME, playBudget, normPlay, mergePlay, playRecord, playState, playUse, fmtMinSec };
+  module.exports = { fmtEUR, fmtPlain, parseMoney, kontoBalance, kontoList, genitive, STICKER_FACT, factOf, WD_SHORT, WD_LONG, MONTHS_SHORT, fmtDate, parseDate, addDays, dowOf, mondayOf, todayStr, daysBetween, isoWeek, defaultCfg, migrateCfg, normGoals, normProg, taskSub, goalReached, goalList, nextGoal, rewardMoney, LADDER, ladderText, RARITY, RAR_ORDER, RAR_WEIGHT, PTS_PER_TOR, STICKERS, STICKER_BY, rarOf, stickerPoints, stickerBonus, pickSticker, packsLeft, tasksOn, RED_DAY_FROM, redTakesDay, YELLOW_DAYS, YELLOW_EXPIRY_FROM, buildLedger, ledgerOf, touch, accountNow, evalDay, evalWeek, computeStats, milestones, coachAdvice, PLAY_FROM_HOUR, GAME_IDS, BONUS_GAME, playBudget, normPlay, mergePlay, playRecord, playState, playUse, fmtMinSec };
 }
