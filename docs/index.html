@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-RezPAqVGVsm2S+SfDdDePypi/dHdp8DwHWvbrnw4C8c='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://www.google.com; font-src 'self'; connect-src 'self' https://firestore.googleapis.com wss://firestore.googleapis.com; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-WUfG2uQIbPgDwxaR7BIilJhm2UQRl0LhHssriiBqHEw='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://www.google.com; font-src 'self'; connect-src 'self' https://firestore.googleapis.com wss://firestore.googleapis.com; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
 <title>Torjäger</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#06110b">
@@ -3528,8 +3528,8 @@ const GAMES = {
   angeln: { name: 'Angeln', sub: 'Anhauen und drillen', art: () => '<span class="gt-fish">' + FISH_ICO.Hecht + '</span>' },
   raubfisch: { name: 'Raubfisch', sub: 'Fressen und wachsen', art: () => '<span class="gt-fish">' + FISH_ICO.Zander + '</span>' },
   sprung: { name: 'Fischsprung', sub: 'Vorbei an den Haken', art: () => '<span class="gt-fish">' + FISH_ICO.Forelle + '</span>' },
-  boss: { name: 'Endgegner', sub: 'Nach 30 Sekunden kaum zu schaffen', bonus: true, art: () => '<span class="gt-boss">' + monsterSVG('meh', 40) + '</span>' },
-  meteor: { name: 'Meteoritenhagel', sub: 'Nach 15 Sekunden unmöglich', bonus: true, art: () => '<span class="gt-met">☄️</span>' },
+  boss: { name: 'Endgegner', sub: 'Ab einer Minute kaum zu schaffen', bonus: true, art: () => '<span class="gt-boss">' + monsterSVG('meh', 40) + '</span>' },
+  meteor: { name: 'Meteoritenhagel', sub: 'Noch heftiger, ab einer Minute unmöglich', bonus: true, art: () => '<span class="gt-met">☄️</span>' },
 };
 const kindOf = id => (GAMES[id] && GAMES[id].bonus ? 'b' : 'r');
 const gameBest = id => normPlay(S.play).best[id];
@@ -3936,7 +3936,7 @@ function angelStart() {
   g.deco = [0, 1, 2].map(i => ({ x: rr(0, s.W), y: rr(g.SY + 50, s.H - 30), v: rr(14, 30) * (i % 2 ? 1 : -1), n: ['Rotauge', 'Barsch', 'Karpfen'][i] }));
   window.__game = g;
   const best = gameBest('angeln');
-  ovl(startCard('Petri Heil!', 'Tippe, um die Kraft beim Auswerfen zu stoppen: weit draußen beißen die Großen. Wackelt die Pose nur, ist das Zupfen. Erst wenn sie ganz untertaucht, schnell tippen! Beim Drillen: Finger halten = einholen, loslassen = Schnur geben. Wenn der Fisch zieht, loslassen!', best != null ? '<p class="hint">Dein Rekord: ' + kgTxt(best / 1000) + '</p>' : '', 'fish-go'));
+  ovl(startCard('Petri Heil!', 'Tippe, um die Kraft beim Auswerfen zu stoppen: weit draußen beißen die Großen. Wackelt die Pose nur, ist das Zupfen: warten! Erst wenn sie ganz untertaucht, tippen. Beim Drillen: Finger halten = einholen, loslassen = Schnur geben. Wenn der Fisch zieht, loslassen!', best != null ? '<p class="hint">Dein Rekord: ' + kgTxt(best / 1000) + '</p>' : '', 'fish-go'));
   setFoot('<p class="g-msg">Wer fängt den Wels?</p>');
   onPtr(g, s.cv, { down: () => angDown(g), up: () => { g.hold = false; } });
   runLoop(g, dt => angStep(g, dt));
@@ -3951,10 +3951,13 @@ function angDown(g) {
   } else if (g.phase === 'wait') {
     if (g.bite) {
       g.phase = 'fight'; g.hold = true; Snd.kick(); Hap.go(30);
-      g.fish = Object.assign(pickFish(g.castD), { D: 1, T: .35, slack: 0, burst: 0, nextBurst: g.t + rr(1, 2.2) });
+      g.fish = Object.assign(pickFish(g.castD), { D: 1, T: .3, slack: 0, burst: 0, nextBurst: g.t + rr(1.6, 2.8) });
       popTxt(g, g.bob.x, g.SY - 30, 'Angebissen!', '#c6ff3d', 30);
       setFoot('<p class="g-msg">Halten = einholen · Loslassen = Schnur geben</p>');
-    } else angLost(g, g.nib ? 'Zu früh! Das war nur Zupfen.' : 'Zu früh! Der Fisch ist weg.');
+    } else {                                                               // zu früh: nur eine Warnung, der Fisch wird kurz vorsichtiger
+      popTxt(g, g.bob.x, g.SY - 34, g.nib ? 'Nur gezupft, warte!' : 'Noch nicht!', '#ffd23c', 24); Snd.soft();
+      g.biteAt = Math.max(g.biteAt, g.t) + 1; g.nibAt = g.t + rr(.6, 1.2);
+    }
   } else if (g.phase === 'fight') g.hold = true;
 }
 function angLost(g, msg) {
@@ -3982,22 +3985,22 @@ function angStep(g, dt) {
     if (p >= 1) { b.y = SY; g.phase = 'wait'; g.biteAt = g.t + rr(1.8, 5); g.nibAt = g.t + rr(.5, 1.3); g.bite = false; g.nib = false; Snd.splash && Snd.splash(); burst(g, b.x, SY, '#bfe9ff', 12, 120); }
   } else if (g.phase === 'wait') {
     const b = g.bob; let dip = Math.sin(g.t * 2.2) * 1.5;
-    if (!g.bite && g.t > g.biteAt) { g.bite = true; g.biteEnd = g.t + (.9 - g.castD * .4); Hap.go(15); }
+    if (!g.bite && g.t > g.biteAt) { g.bite = true; g.biteEnd = g.t + (1.35 - g.castD * .4); Hap.go(15); }
     if (g.bite) { dip = 18; if (g.t > g.biteEnd) angLost(g, 'Köder geklaut!'); }
     else if (g.t > g.nibAt) { g.nib = true; dip = 5 * Math.sin((g.t - g.nibAt) / .25 * Math.PI); if (g.t > g.nibAt + .25) { g.nib = false; g.nibAt = g.t + rr(.5, 1.6); if (g.nibAt > g.biteAt - .4) g.nibAt = g.biteAt + 9; } }
     b.y = SY + dip;
   } else if (g.phase === 'fight') {
     const f = g.fish;
-    if (g.t > f.nextBurst && !f.burst) { f.burst = g.t + rr(.5, 1.1) * (.7 + f.pow * .6); popTxt(g, W * .62, SY + 26, 'Er zieht!', '#ff8f88', 26); Hap.go(20); }
+    if (g.t > f.nextBurst && !f.burst) { f.burst = g.t + rr(.4, .9) * (.7 + f.pow * .5); popTxt(g, W * .62, SY + 26, 'Er zieht!', '#ff8f88', 26); Hap.go(20); }
     const pulling = f.burst && g.t < f.burst;
-    if (f.burst && !pulling) { f.burst = 0; f.nextBurst = g.t + rr(1, 2.6) * (1.25 - f.pow * .5); }
-    if (g.hold) { f.D -= (.2 - f.pow * .07) * dt; f.T += ((.12 + f.pow * .26) + (pulling ? 1.1 + f.pow * .7 : 0)) * dt; }
-    else { f.T -= .7 * dt; f.D += ((pulling ? .12 : .02) * (.5 + f.pow)) * dt; }
+    if (f.burst && !pulling) { f.burst = 0; f.nextBurst = g.t + rr(1.6, 3.2) * (1.3 - f.pow * .4); }
+    if (g.hold) { f.D -= (.24 - f.pow * .07) * dt; f.T += ((.08 + f.pow * .18) + (pulling ? .7 + f.pow * .45 : 0)) * dt; }
+    else { f.T -= .8 * dt; f.D += ((pulling ? .08 : .015) * (.5 + f.pow)) * dt; }
     f.T = Math.max(0, f.T);
-    f.slack = f.T < .1 ? f.slack + dt : 0;
+    f.slack = f.T < .06 ? f.slack + dt : 0;
     if (f.T >= 1) angLost(g, 'Schnur gerissen!');
-    else if (f.D >= 1.35) angLost(g, 'Entkommen!');
-    else if (f.slack > 1.6) angLost(g, 'Zu locker! Er hat sich losgeschüttelt.');
+    else if (f.D >= 1.6) angLost(g, 'Entkommen!');
+    else if (f.slack > 3) angLost(g, 'Zu locker! Er hat sich losgeschüttelt.');
     else if (f.D <= 0) angCatch(g);
     tens = f.T;
   }
@@ -4019,8 +4022,8 @@ function angStep(g, dt) {
   if (g.phase === 'fight' && g.fish) {
     const f = g.fish, fx = tx + 30 + (W * .62 - tx) * Math.min(1.2, f.D), fy = SY + 30 + Math.min(1.2, f.D) * (H - SY) * .45 + Math.sin(g.t * (f.burst ? 14 : 3)) * (f.burst ? 8 : 3);
     const flen = 44 + Math.min(f.kg, 40) * 2.2, fa = Math.atan2(ty - fy, tx - fx) + (f.burst ? Math.sin(g.t * 22) * .35 : Math.sin(g.t * 4) * .08);
-    c.strokeStyle = tens > .8 ? '#ff5a52' : tens < .12 ? 'rgba(255,255,255,.35)' : '#ffffff'; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(tx, ty); if (tens < .12) c.quadraticCurveTo((tx + fx) / 2, fy + 30, fx, fy); else c.lineTo(fx, fy); c.stroke();
+    c.strokeStyle = tens > .8 ? '#ff5a52' : tens < .06 ? 'rgba(255,255,255,.35)' : '#ffffff'; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(tx, ty); if (tens < .06) c.quadraticCurveTo((tx + fx) / 2, fy + 30, fx, fy); else c.lineTo(fx, fy); c.stroke();
     drawFish(c, f.name, fx - Math.cos(fa) * flen * .44, fy - Math.sin(fa) * flen * .44, flen, fa);
     if (f.burst) burst(g, fx + rr(-10, 30), SY + 2, '#bfe9ff', 1, 90);
   } else if (g.bob) {
@@ -4041,9 +4044,9 @@ function angStep(g, dt) {
   if (g.phase === 'fight') {
     const gx = W - 30, gy = SY + 16, gh = H - SY - 40;
     c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(gx - 4, gy - 4, 22, gh + 8);
-    c.fillStyle = 'rgba(198,255,61,.25)'; c.fillRect(gx, gy + gh * (1 - .8), 14, gh * (.8 - .12));
+    c.fillStyle = 'rgba(198,255,61,.25)'; c.fillRect(gx, gy + gh * (1 - .8), 14, gh * (.8 - .06));
     c.fillStyle = 'rgba(255,90,82,.4)'; c.fillRect(gx, gy, 14, gh * .2);
-    c.fillStyle = tens > .8 ? '#ff5a52' : tens < .12 ? '#9fb0a4' : '#c6ff3d'; c.fillRect(gx, gy + gh * (1 - Math.min(1, tens)), 14, gh * Math.min(1, tens));
+    c.fillStyle = tens > .8 ? '#ff5a52' : tens < .06 ? '#9fb0a4' : '#c6ff3d'; c.fillRect(gx, gy + gh * (1 - Math.min(1, tens)), 14, gh * Math.min(1, tens));
     c.save(); c.translate(gx - 10, gy + gh / 2); c.rotate(-Math.PI / 2); c.fillStyle = '#fff'; c.font = '700 12px Barlow, system-ui, sans-serif'; c.textAlign = 'center'; c.fillText('Spannung', 0, 0); c.restore();
     const f = g.fish, pbw = W * .5;
     c.fillStyle = 'rgba(0,0,0,.45)'; c.fillRect(16, H - 26, pbw, 12); c.fillStyle = '#38c9f2'; c.fillRect(16, H - 26, pbw * clamp(1 - f.D, 0, 1), 12);
@@ -4056,10 +4059,10 @@ function angStep(g, dt) {
 /* Du bist ein kleiner Hecht: Finger aufs Wasser, er schwimmt hin. Friss kleinere Fische und wachse, meide größere (rot umrandet).
    Große Räuber jagen dich, wenn du ihnen zu nahe kommst. Mit der Zeit werden es mehr Räuber. */
 function raubStart() {
-  const s = stage('<span class="ct-score">Punkte <b id="rS">0</b></span><span class="ct-score">Größe <b id="rL">1</b></span>');
-  const g = U.game = newGame('raubfisch', s, { me: { x: s.W / 2, y: s.H / 2, a: 0, L: 46 }, tgt: null, npcs: [], spawn: 0, score: 0, lastEat: -9, eaten: 0, bubbles: [] });
+  const s = stage('<span class="ct-score">Punkte <b id="rS">0</b></span><span class="ct-score">Größe <b id="rL">1</b></span><span class="ct-score" id="rH">❤️❤️❤️</span>');
+  const g = U.game = newGame('raubfisch', s, { me: { x: s.W / 2, y: s.H / 2, a: 0, L: 46 }, lives: 3, inv: 0, tgt: null, npcs: [], spawn: 0, score: 0, lastEat: -9, eaten: 0, bubbles: [] });
   window.__game = g;
-  ovl(startCard('Fressen und wachsen', 'Halte den Finger aufs Wasser: Dein Hecht schwimmt dorthin. Fang Fische, die kleiner sind als du. Rot umrandete Fische sind größer: Die fressen dich! Je größer du wirst, desto mehr kannst du jagen.', recTxt(gameBest('raubfisch'), 'Punkte'), 'raub-go'));
+  ovl(startCard('Fressen und wachsen', 'Halte den Finger aufs Wasser: Dein Hecht schwimmt dorthin. Fang Fische, die kleiner sind als du. Rot umrandete Fische sind größer und beißen dich. Du hast drei Leben. Je größer du wirst, desto mehr kannst du jagen.', recTxt(gameBest('raubfisch'), 'Punkte'), 'raub-go'));
   setFoot('<p class="g-msg">Werde der größte Fisch im See!</p>');
   onPtr(g, s.cv, { down: p => { g.tgt = p; }, move: p => { if (g.tgt) g.tgt = p; }, up: () => { g.tgt = null; } });
   for (let i = 0; i < 5; i++) raubSpawn(g, true);
@@ -4069,37 +4072,43 @@ ACT['raub-go'] = () => { const g = U.game; if (!g || g.id !== 'raubfisch' || g.p
 const SMALL_FISH = ['Rotauge', 'Barsch', 'Forelle', 'Aal'], BIG_FISH = ['Zander', 'Karpfen', 'Lachs', 'Wels', 'Hecht'];
 function raubSpawn(g, inside) {
   const me = g.me, el = g.phase === 'play' ? g.t - g.t0 : 0;
-  const danger = el > 4 && Math.random() < Math.min(.5, .22 + el / 200);
+  const danger = el > 8 && Math.random() < Math.min(.4, .15 + el / 300);
   const L = danger ? me.L * rr(1.2, 1.9) : me.L * rr(.35, .85);
   const dir = Math.random() < .5 ? 1 : -1;
   g.npcs.push({ name: danger ? BIG_FISH[rnd(BIG_FISH.length)] : SMALL_FISH[rnd(SMALL_FISH.length)], L: Math.min(L, g.W * .55), dir,
-    x: inside ? (Math.random() < .5 ? rr(0, g.W * .25) : rr(g.W * .75, g.W)) : (dir > 0 ? -L : g.W + L), y: rr(30, g.H - 30), v: rr(40, 95) * (1 + el / 150), ph: rr(0, 6), a: dir > 0 ? 0 : Math.PI });
+    x: inside ? (Math.random() < .5 ? rr(0, g.W * .25) : rr(g.W * .75, g.W)) : (dir > 0 ? -L : g.W + L), y: rr(30, g.H - 30), v: rr(35, 80) * (1 + el / 240), ph: rr(0, 6), a: dir > 0 ? 0 : Math.PI });
 }
 function raubStep(g, dt) {
   const c = g.c, W = g.W, H = g.H, me = g.me;
   if (g.phase === 'play') {
-    const sp = clamp(200 - me.L * .5, 110, 200);
-    if (g.tgt) { const want = Math.atan2(g.tgt.y - me.y, g.tgt.x - me.x); let d = want - me.a; d = Math.atan2(Math.sin(d), Math.cos(d)); me.a += clamp(d, -6 * dt, 6 * dt); }
+    const sp = clamp(230 - me.L * .4, 150, 230);
+    if (g.tgt) { const want = Math.atan2(g.tgt.y - me.y, g.tgt.x - me.x); let d = want - me.a; d = Math.atan2(Math.sin(d), Math.cos(d)); me.a += clamp(d, -8 * dt, 8 * dt); }
     const go = g.tgt ? Math.min(1, Math.hypot(g.tgt.x - me.x, g.tgt.y - me.y) / 40) : .35;
     me.x = clamp(me.x + Math.cos(me.a) * sp * go * dt, 10, W - 10); me.y = clamp(me.y + Math.sin(me.a) * sp * go * dt, 10, H - 10);
     g.spawn -= dt; if (g.spawn <= 0 && g.npcs.length < 13) { raubSpawn(g); g.spawn = rr(.45, 1); }
     const mx = me.x + Math.cos(me.a) * me.L * .42, my = me.y + Math.sin(me.a) * me.L * .42;
     for (const n of g.npcs) {
-      const big = n.L > me.L * 1.08, d = Math.hypot(n.x - me.x, n.y - me.y);
-      if (big && d < 110 + n.L * .5) { const want = Math.atan2(me.y - n.y, me.x - n.x); let dd = want - n.a; dd = Math.atan2(Math.sin(dd), Math.cos(dd)); n.a += clamp(dd, -1.8 * dt, 1.8 * dt); n.hunt = true; }
+      const big = n.L > me.L * 1.12, d = Math.hypot(n.x - me.x, n.y - me.y);
+      if (big && d < 80 + n.L * .3) { const want = Math.atan2(me.y - n.y, me.x - n.x); let dd = want - n.a; dd = Math.atan2(Math.sin(dd), Math.cos(dd)); n.a += clamp(dd, -1.2 * dt, 1.2 * dt); n.hunt = true; }
       else { const want = n.dir > 0 ? 0 : Math.PI; let dd = want - n.a; dd = Math.atan2(Math.sin(dd), Math.cos(dd)); n.a += clamp(dd, -1 * dt, 1 * dt); n.hunt = false; }
-      const v = n.v * (n.hunt ? 1.3 : 1);
+      const v = n.v * (n.hunt ? 1.1 : 1);
       n.x += Math.cos(n.a) * v * dt; n.y += Math.sin(n.a) * v * dt + Math.sin(g.t * 2 + n.ph) * 10 * dt;
-      if (n.L < me.L * .92 && Math.hypot(n.x - mx, n.y - my) < n.L * .42 + 8) {
+      if (n.L < me.L * .95 && Math.hypot(n.x - mx, n.y - my) < n.L * .5 + 12) {
         n.dead = true; const pts = Math.max(1, Math.round(n.L / 8));
         const combo = g.t - g.lastEat < 1.4; g.lastEat = g.t; g.eaten++;
         g.score += combo ? pts * 2 : pts; me.L = Math.min(W * .32, me.L + n.L * .09);
         popTxt(g, n.x, n.y - 10, combo ? 'Doppelhappen! +' + pts * 2 : '+' + pts, combo ? '#ffd23c' : '#c6ff3d', combo ? 26 : 22);
         burst(g, n.x, n.y, '#bfe9ff', 10, 140); Snd.stamp(); Hap.go(12);
         setHud('rS', g.score); setHud('rL', (me.L / 46).toFixed(1).replace('.', ','));
-      } else if (big) {
+      } else if (big && g.t > g.inv) {
         const nx = n.x + Math.cos(n.a) * n.L * .42, ny = n.y + Math.sin(n.a) * n.L * .42;
-        if (Math.hypot(nx - me.x, ny - me.y) < me.L * .32) { raubEnd(g, true, n); return; }
+        if (Math.hypot(nx - me.x, ny - me.y) < me.L * .25) {
+          g.lives--; setHud('rH', '❤️❤️❤️'.slice(0, g.lives * 2) + '🖤🖤🖤'.slice(0, (3 - g.lives) * 2));
+          if (!g.lives) { raubEnd(g, true, n); return; }
+          g.inv = g.t + 2; me.L = Math.max(40, me.L * .88); n.a += Math.PI; n.dir = -n.dir;   // kurz unverwundbar, der Räuber dreht ab
+          Snd.soft(); Hap.go([50, 30, 50]); burst(g, me.x, me.y, '#ff5a52', 12, 160);
+          popTxt(g, me.x, me.y - 30, g.lives === 1 ? 'Autsch! Letztes Leben!' : 'Autsch! Noch ' + g.lives + ' Leben', '#ff8f88', 24);
+        }
       }
     }
     g.npcs = g.npcs.filter(n => !n.dead && n.x > -n.L * 1.5 && n.x < W + n.L * 1.5 && n.y > -80 && n.y < H + 80);
@@ -4110,10 +4119,10 @@ function raubStep(g, dt) {
   if (Math.random() < dt * 3) g.bubbles.push({ x: rr(0, W), y: H, r: rr(2, 5) });
   c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 1; g.bubbles = g.bubbles.filter(b => (b.y -= 40 * dt) > -10); for (const b of g.bubbles) { c.beginPath(); c.arc(b.x + Math.sin(b.y * .05) * 4, b.y, b.r, 0, TAU); c.stroke(); }
   for (const n of g.npcs) {
-    if (n.L > me.L * 1.08) { c.strokeStyle = 'rgba(255,90,82,' + (.45 + Math.sin(g.t * 6) * .2) + ')'; c.lineWidth = 3; c.beginPath(); c.ellipse(n.x, n.y, n.L * .55, n.L * .25, n.a, 0, TAU); c.stroke(); }
+    if (n.L > me.L * 1.12) { c.strokeStyle = 'rgba(255,90,82,' + (.45 + Math.sin(g.t * 6) * .2) + ')'; c.lineWidth = 3; c.beginPath(); c.ellipse(n.x, n.y, n.L * .55, n.L * .25, n.a, 0, TAU); c.stroke(); }
     drawFish(c, n.name, n.x, n.y, n.L, n.a);
   }
-  if (g.phase !== 'over' || g.blink) drawFish(c, 'Hecht', me.x, me.y, me.L, me.a);
+  if (g.phase !== 'over' && (g.t > g.inv || Math.sin(g.t * 25) > 0)) drawFish(c, 'Hecht', me.x, me.y, me.L, me.a);
   if (g.tgt && g.phase === 'play') { c.strokeStyle = 'rgba(255,255,255,.4)'; c.lineWidth = 2; c.beginPath(); c.arc(g.tgt.x, g.tgt.y, 10, 0, TAU); c.stroke(); }
   drawFx(g, dt);
 }
@@ -4187,10 +4196,10 @@ function sprungEnd(g) {
 }
 
 /* ======================= Bonus 2: Meteoritenhagel ======================= */
-/* Finger hin und her ziehen: Die Rakete folgt. Erst ein paar Brocken, ab 7 Sekunden explodiert das Tempo,
-   nach etwa 15 Sekunden ist der Himmel voll, nach 20 praktisch unmöglich. Härter als der Endgegner. */
-function metSpeed(t) { return 1 + t * .05 + (t > 7 ? Math.pow((t - 7) / 4, 2) : 0); }
-function metGap(t) { return Math.max(.025, .5 - t * .025 - (t > 7 ? (t - 7) * .045 : 0)); }
+/* Finger hin und her ziehen: Die Rakete folgt. Erst ein paar Brocken, die langsam mehr werden. Ab 45 Sekunden explodiert das Tempo,
+   nach etwa 55 Sekunden ist der Himmel voll, nach 60 praktisch unmöglich. Etwas härter als der Endgegner. */
+function metSpeed(t) { return 1 + t * .015 + (t > 45 ? Math.pow((t - 45) / 6, 2) : 0); }   // 51 s doppelt, 57 s fünffach, 63 s zehnfach
+function metGap(t) { return Math.max(.035, .55 * Math.pow(.99, t) / (1 + (t > 45 ? Math.pow((t - 45) / 8, 2) : 0))); }   // 30 s: alle 0,41 s, 45 s: 0,35 s, 61 s: 0,1 s
 function metStart() {
   const s = stage('<span class="ct-score">⏱ <b id="mT">0,0</b> s</span>' + (gameBest('meteor') != null ? '<span class="ct-score">Rekord <b>' + (gameBest('meteor') / 10).toFixed(1).replace('.', ',') + '</b> s</span>' : ''));
   const g = U.game = newGame('meteor', s, { x: s.W / 2, tx: s.W / 2, rocks: [], spawn: 0, secs: 0, stars: Array.from({ length: 60 }, () => ({ x: rr(0, s.W), y: rr(0, s.H), z: rr(.3, 1) })) });
@@ -4208,8 +4217,8 @@ function metStep(g, dt) {
     g.x += (g.tx - g.x) * Math.min(1, dt * 18); g.x = clamp(g.x, 16, W - 16);
     g.spawn -= dt;
     while (g.spawn <= 0) {
-      const r = rr(10, 22) * (1 + Math.min(el, 20) * .03);
-      g.rocks.push({ x: rr(0, W), y: -r, r, vy: H * rr(.32, .45), vx: el > 10 ? rr(-60, 60) : 0, rot: rr(0, 6), near: false });
+      const r = rr(10, 22) * (1 + Math.min(el, 60) * .006);
+      g.rocks.push({ x: rr(0, W), y: -r, r, vy: H * rr(.32, .45), vx: el > 35 ? rr(-60, 60) : 0, rot: rr(0, 6), near: false });
       g.spawn += metGap(el);
     }
     for (const m of g.rocks) {
@@ -4245,20 +4254,20 @@ function metEnd(g, hit) {
   if (hit) { Snd.soft(); Hap.go([80, 40, 80]); burst(g, g.x, g.H - 56, '#ff8a1f', 30, 280); popTxt(g, g.W / 2, g.H * .4, 'BUMM!', '#ff8a1f', 46); }
   if (rec) { Snd.fanfare(); FX.party(['🚀', '⭐']); }
   const s = (tenths / 10).toFixed(1).replace('.', ',');
-  setFoot(againFoot('meteor', '<b>' + s + ' Sekunden</b> überlebt.' + (rec ? ' Neuer Rekord!' : g.secs > 15 ? ' Unglaublich!' : '')));
+  setFoot(againFoot('meteor', '<b>' + s + ' Sekunden</b> überlebt.' + (rec ? ' Neuer Rekord!' : g.secs > 50 ? ' Unglaublich!' : '')));
 }
 
 /* ---------- 7. Endgegner (Bonusspiel): durch die Abwehr dribbeln ----------
    Drei Bahnen, Verteidiger kommen entgegen. Links oder rechts tippen wechselt die Bahn.
-   Bewusst so gebaut: anfangs leicht, ab etwa 28 Sekunden wird es rasend schnell und eng, nach 35 bis 40 Sekunden ist es kaum noch zu schaffen. */
+   Bewusst so gebaut: anfangs leicht, ab etwa 50 Sekunden wird es rasend schnell und eng, nach 60 bis 70 Sekunden ist es kaum noch zu schaffen. */
 const BOSS_LANES = 3;
 function bossSpeed(t, H) {
-  const base = H * (.42 + Math.min(t, 28) * .008);                // ruhig steigend bis 28 s
-  const boost = t > 28 ? Math.pow((t - 28) / 4, 2) : 0;           // danach immer steiler: 32 s doppelt, 36 s fünffach, 40 s zehnfach
+  const base = H * (.42 + Math.min(t, 50) * .005);                // ruhig steigend bis 50 s
+  const boost = t > 50 ? Math.pow((t - 50) / 7, 2) : 0;           // danach immer steiler: 57 s doppelt, 64 s fünffach, 71 s zehnfach
   return base * (1 + boost);
 }
-function bossGap(t, H) { return H * (t < 12 ? .62 : t < 28 ? .62 - (t - 12) * .014 : Math.max(.2, .4 - (t - 28) * .03)); }
-function bossBlocked(t) { return t < 10 ? 1 : t < 22 ? (Math.random() < (t - 10) / 14 ? 2 : 1) : 2; }
+function bossGap(t, H) { return H * (t < 25 ? .62 : t < 50 ? .62 - (t - 25) * .0088 : Math.max(.2, .4 - (t - 50) * .02)); }
+function bossBlocked(t) { return t < 20 ? 1 : t < 45 ? (Math.random() < (t - 20) / 28 ? 2 : 1) : 2; }
 function bossStart() {
   const g = U.game = { id: 'boss', phase: 'ready', lane: 1, rows: [], raf: 0, secs: 0 };
   window.__game = g;
@@ -4319,7 +4328,7 @@ function bossEnd(g, tackled) {
   if (tackled) { Snd.soft(); Hap.go([60, 40, 60]); const me = $('#bme'); if (me) me.classList.add('down'); }
   if (rec) { Snd.fanfare(); FX.party(['⚽', '🔥']); }
   const s = (tenths / 10).toFixed(1).replace('.', ',');
-  setFoot(doneFoot('<b>' + (tackled ? 'Abgegrätscht nach ' : 'Durchgehalten: ') + s + ' Sekunden!</b>' + (rec ? ' Neuer Rekord!' : g.secs > 30 ? ' Wahnsinn, so weit!' : ''), 'boss-again'));
+  setFoot(doneFoot('<b>' + (tackled ? 'Abgegrätscht nach ' : 'Durchgehalten: ') + s + ' Sekunden!</b>' + (rec ? ' Neuer Rekord!' : g.secs > 55 ? ' Wahnsinn, so weit!' : ''), 'boss-again'));
 }
 ACT['boss-again'] = () => again('boss');
 

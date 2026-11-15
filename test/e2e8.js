@@ -123,10 +123,9 @@ const H = page => ({
   bx = await box();
   await page.mouse.click(bx.x + bx.w / 2, bx.y + bx.h / 2); await h.wait(900);
   ok('E Angeln: ausgeworfen, Pose im Wasser', (await h.game()).phase === 'wait');
+  const ba = await page.evaluate(() => __game.biteAt);
   await page.mouse.click(bx.x + bx.w / 2, bx.y + bx.h / 2); await h.wait(300);
-  ok('E Angeln: zu früh angehauen = Fisch weg', (await h.game()).phase === 'lost');
-  await h.wait(1700);
-  await page.mouse.click(bx.x + bx.w / 2, bx.y + bx.h / 2); await h.wait(900);
+  ok('E Angeln: zu früh angehauen = nur Warnung, der Biss kommt später', (await h.game()).phase === 'wait' && (await page.evaluate(() => __game.biteAt)) > ba);
   await page.evaluate(() => { __game.biteAt = __game.t + .1; __game.nibAt = __game.t + 50; }); await h.wait(300);
   await page.mouse.move(bx.x + bx.w / 2, bx.y + bx.h / 2); await page.mouse.down(); await h.wait(300);
   ok('E Angeln: beim Biss angehauen = Drill', (await h.game()).phase === 'fight');
@@ -159,24 +158,24 @@ const H = page => ({
   ok('E Regelbuch erklärt die Minispiele', /Minispiele/.test(await h.txt('.sheet')) && /1 Minute/.test(await h.txt('.sheet')) && /14 Uhr/.test(await h.txt('.sheet')));
   await page.close();
 
-  // ---- F) Endgegner wird nach 30 Sekunden kaum schaffbar (rechnerisch, ohne 40 s zu warten) ----
+  // ---- F) Endgegner wird nach etwa einer Minute kaum schaffbar (rechnerisch, ohne 40 s zu warten) ----
   page = await open(b, BASE()); h = H(page);
   await page.click('.gtile[data-game="boss"]'); await h.wait(300);
   await page.click('[data-act="boss-go"]');
   // Uhr des Spiels vorstellen: Startzeit 34 s zurück, dann ohne Ausweichen höchstens kurz überleben
-  await page.evaluate(() => { const g = window.__game; g.t0 -= 34000; });
+  await page.evaluate(() => { const g = window.__game; g.t0 -= 72000; });
   await h.wait(1500);
   const g2 = await page.evaluate(() => ({ phase: window.__game && window.__game.phase, rows: window.__game && window.__game.rows.length }));
-  ok('F Endgegner nach 34 s: sofort abgegrätscht', g2.phase === 'over' && /Abgegrätscht nach 3\d,\d Sekunden/.test(await h.txt('#gfoot')), JSON.stringify(g2) + ' ' + await h.txt('#gfoot'));
+  ok('F Endgegner nach 72 s: sofort abgegrätscht', g2.phase === 'over' && /Abgegrätscht nach 7\d,\d Sekunden/.test(await h.txt('#gfoot')), JSON.stringify(g2) + ' ' + await h.txt('#gfoot'));
   await page.close();
 
-  // ---- G) Meteoritenhagel: nach 20 Sekunden praktisch unmöglich, schneller als der Endgegner ----
+  // ---- G) Meteoritenhagel: nach etwa einer Minute praktisch unmöglich ----
   page = await open(b, BASE()); h = H(page);
   await page.click('.gtile[data-game="meteor"]'); await h.wait(300);
   await page.click('[data-act="met-go"]'); await h.wait(100);
-  await page.evaluate(() => { __game.t0 -= 20; });
+  await page.evaluate(() => { __game.t0 -= 68; });
   await h.wait(2000);
-  ok('G Meteoritenhagel nach 20 s: sofort getroffen', (await h.game()).phase === 'over' && /2\d,\d Sekunden/.test(await h.txt('#gfoot')), await h.txt('#gfoot'));
+  ok('G Meteoritenhagel nach 68 s: sofort getroffen', (await h.game()).phase === 'over' && /[67]\d,\d Sekunden/.test(await h.txt('#gfoot')), await h.txt('#gfoot'));
   await page.close();
 
   console.log(errs.length ? 'FEHLER im Browser:\n' + errs.join('\n') : 'ok   keine Konsolenfehler');
